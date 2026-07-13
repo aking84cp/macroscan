@@ -88,6 +88,10 @@
   .basis-label { font-size: 11px; font-weight: 700; color: var(--mut); text-transform: uppercase; letter-spacing: 0.04em; }
   .basis-row input { width: 78px; font: inherit; font-size: 16px; font-weight: 800; padding: 7px 8px; border: 1.5px solid var(--ink); border-radius: 8px; background: #fff; text-align: center; font-variant-numeric: tabular-nums; }
   .basis-hint { font-size: 12px; color: var(--mut); margin-bottom: 8px; }
+  .psearch { width: 100%; font: inherit; font-size: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); margin-bottom: 8px; }
+  .produce-list { max-height: 46vh; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; -webkit-overflow-scrolling: touch; }
+  .produce-item { text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .produce-macros { font-size: 12px; color: var(--mut); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .grid4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .grams-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 12px; }
   .grams-row .field { flex: 1; }
@@ -146,8 +150,18 @@
 
   <section class="actions" id="idle-actions">
     <button class="primary" id="btn-scan">Scan barcode</button>
+    <button class="ghost" id="btn-produce">Add produce</button>
     <button class="ghost" id="btn-manual">Enter manually</button>
     <div class="err hidden" id="action-err"></div>
+  </section>
+
+  <section class="review hidden" id="produce-picker">
+    <div class="review-head">
+      <span>Produce — USDA per 100 g</span>
+      <button class="x" id="btn-produce-close" aria-label="Close produce list">×</button>
+    </div>
+    <input id="produce-search" class="psearch" type="search" placeholder="Search produce…" autocomplete="off">
+    <div class="produce-list" id="produce-list"></div>
   </section>
 
   <section class="review hidden" id="review">
@@ -372,7 +386,9 @@ function openReview(d) {
   $("review").classList.remove("hidden");
   $("idle-actions").classList.add("hidden");
   $("review-src-label").textContent =
-    d.source === "off" ? "Open Food Facts" : d.source === "library" ? "From your foods" : "Manual entry";
+    d.source === "off" ? "Open Food Facts" :
+    d.source === "library" ? "From your foods" :
+    d.source === "produce" ? "Produce — USDA" : "Manual entry";
   $("review-src").classList.toggle("hidden", d.source !== "off");
   if (d.source === "off") $("review-src").textContent = "barcode " + d.barcode;
   $("review-notes").classList.toggle("hidden", !d.notes);
@@ -384,7 +400,7 @@ function openReview(d) {
   $("f-fat").value = d.fat ?? "";
   $("f-basis").value = d.basisG ?? 100;
   const bBtn = $("f-basis-serving");
-  if (d.servingG) {
+  if (d.servingG && (d.source === "off" || d.source === "manual")) {
     bBtn.classList.remove("hidden");
     bBtn.textContent = "serving = " + d.servingG + "g";
     bBtn.onclick = () => { $("f-basis").value = d.servingG; updatePreview(); };
@@ -393,10 +409,13 @@ function openReview(d) {
   }
   $("f-grams").value = d.grams ?? "";
   const sBtn = $("f-serving");
-  if (d.servingG) { sBtn.classList.remove("hidden"); sBtn.textContent = `1 serving = ${d.servingG}g`; }
+  if (d.servingG) {
+    sBtn.classList.remove("hidden");
+    sBtn.textContent = (d.unitName || "1 serving") + " = " + d.servingG + "g";
+  }
   else sBtn.classList.add("hidden");
   $("save-lib-row").classList.toggle("hidden", d.source === "library");
-  $("f-savelib").checked = true;
+  $("f-savelib").checked = d.source !== "produce";
   updatePreview();
   $("f-grams").focus();
 }
@@ -465,6 +484,95 @@ $("btn-add").onclick = () => {
 };
 
 $("btn-manual").onclick = () => openReview({ source: "manual", grams: "" });
+
+// ---------- produce database ----------
+// [name, kcal, protein, carbs, fat, typicalG, unitName] — per 100 g, USDA FoodData Central, raw edible portion unless noted
+const PRODUCE = [
+  // fruit
+  ["Banana", 89, 1.1, 22.8, 0.3, 118, "1 medium"],
+  ["Apple (with skin)", 52, 0.3, 13.8, 0.2, 182, "1 medium"],
+  ["Orange", 47, 0.9, 11.8, 0.1, 131, "1 medium"],
+  ["Strawberries", 32, 0.7, 7.7, 0.3, 152, "1 cup"],
+  ["Blueberries", 57, 0.7, 14.5, 0.3, 148, "1 cup"],
+  ["Raspberries", 52, 1.2, 11.9, 0.7, 123, "1 cup"],
+  ["Blackberries", 43, 1.4, 9.6, 0.5, 144, "1 cup"],
+  ["Grapes", 69, 0.7, 18.1, 0.2, 151, "1 cup"],
+  ["Watermelon", 30, 0.6, 7.6, 0.2, 152, "1 cup"],
+  ["Cantaloupe", 34, 0.8, 8.2, 0.2, 160, "1 cup"],
+  ["Pineapple", 50, 0.5, 13.1, 0.1, 165, "1 cup"],
+  ["Mango", 60, 0.8, 15.0, 0.4, 165, "1 cup"],
+  ["Peach", 39, 0.9, 9.5, 0.3, 150, "1 medium"],
+  ["Pear", 57, 0.4, 15.2, 0.1, 178, "1 medium"],
+  ["Kiwi", 61, 1.1, 14.7, 0.5, 69, "1 fruit"],
+  ["Cherries (sweet)", 63, 1.1, 16.0, 0.2, 154, "1 cup"],
+  ["Plum", 46, 0.7, 11.4, 0.3, 66, "1 fruit"],
+  ["Grapefruit", 42, 0.8, 10.7, 0.1, 123, "1/2 fruit"],
+  ["Pomegranate arils", 83, 1.7, 18.7, 1.2, 174, "1 cup"],
+  ["Avocado", 160, 2.0, 8.5, 14.7, 150, "1 medium"],
+  ["Dates (Medjool)", 277, 1.8, 75.0, 0.2, 24, "1 date"],
+  ["Lemon", 29, 1.1, 9.3, 0.3, 58, "1 fruit"],
+  ["Lime", 30, 0.7, 10.5, 0.2, 67, "1 fruit"],
+  // veg
+  ["Broccoli", 34, 2.8, 6.6, 0.4, 91, "1 cup"],
+  ["Spinach", 23, 2.9, 3.6, 0.4, 30, "1 cup raw"],
+  ["Kale", 35, 2.9, 4.4, 1.5, null, null],
+  ["Carrot", 41, 0.9, 9.6, 0.2, 61, "1 medium"],
+  ["Sweet potato (baked)", 90, 2.0, 20.7, 0.2, 114, "1 medium"],
+  ["Potato (baked, w/ skin)", 93, 2.5, 21.2, 0.1, 173, "1 medium"],
+  ["Cucumber (with peel)", 15, 0.7, 3.6, 0.1, null, null],
+  ["Tomato", 18, 0.9, 3.9, 0.2, 123, "1 medium"],
+  ["Bell pepper (red)", 31, 1.0, 6.0, 0.3, 119, "1 medium"],
+  ["Onion", 40, 1.1, 9.3, 0.1, 110, "1 medium"],
+  ["Garlic", 149, 6.4, 33.1, 0.5, 3, "1 clove"],
+  ["Zucchini", 17, 1.2, 3.1, 0.3, 196, "1 medium"],
+  ["Cauliflower", 25, 1.9, 5.0, 0.3, 107, "1 cup"],
+  ["Brussels sprouts", 43, 3.4, 9.0, 0.3, 88, "1 cup"],
+  ["Asparagus", 20, 2.2, 3.9, 0.1, 134, "1 cup"],
+  ["Green beans", 31, 1.8, 7.0, 0.2, 100, "1 cup"],
+  ["Mushrooms (white)", 22, 3.1, 3.3, 0.3, 70, "1 cup sliced"],
+  ["Lettuce (romaine)", 17, 1.2, 3.3, 0.3, null, null],
+  ["Celery", 14, 0.7, 3.0, 0.2, 40, "1 stalk"],
+  ["Corn (sweet, raw)", 86, 3.3, 18.7, 1.4, 90, "1 ear kernels"],
+  ["Peas (green)", 81, 5.4, 14.5, 0.4, 145, "1 cup"],
+  ["Edamame (cooked, shelled)", 121, 11.9, 8.9, 5.2, 155, "1 cup"],
+  ["Beet", 43, 1.6, 9.6, 0.2, 82, "1 beet"],
+  ["Butternut squash", 45, 1.0, 11.7, 0.1, 140, "1 cup cubed"]
+];
+
+function renderProduceList(filter) {
+  const q = (filter || "").trim().toLowerCase();
+  const items = PRODUCE.filter(p => !q || p[0].toLowerCase().includes(q));
+  $("produce-list").innerHTML = items.length ? items.map(p => `
+    <button class="produce-item" data-pi="${PRODUCE.indexOf(p)}">
+      <span class="lib-name">${esc(p[0])}</span>
+      <span class="produce-macros">${p[1]} kcal · ${p[2]}P / ${p[3]}C / ${p[4]}F</span>
+    </button>`).join("") : `<div class="empty">No match — use Enter manually and it'll save to My foods.</div>`;
+  $("produce-list").querySelectorAll("[data-pi]").forEach(b => b.onclick = () => {
+    const p = PRODUCE[+b.dataset.pi];
+    closeProducePicker(true);
+    openReview({
+      source: "produce", name: p[0],
+      kcal: p[1], protein: p[2], carbs: p[3], fat: p[4],
+      servingG: p[5], unitName: p[6], grams: "",
+      notes: "USDA average per 100 g, edible portion. Weigh it peeled/trimmed for best accuracy."
+    });
+  });
+}
+
+function openProducePicker() {
+  $("idle-actions").classList.add("hidden");
+  $("review").classList.add("hidden");
+  $("produce-picker").classList.remove("hidden");
+  $("produce-search").value = "";
+  renderProduceList("");
+}
+function closeProducePicker(keepActionsHidden) {
+  $("produce-picker").classList.add("hidden");
+  if (!keepActionsHidden) $("idle-actions").classList.remove("hidden");
+}
+$("btn-produce").onclick = openProducePicker;
+$("btn-produce-close").onclick = () => closeProducePicker(false);
+$("produce-search").addEventListener("input", e => renderProduceList(e.target.value));
 
 // ---------- Open Food Facts lookup ----------
 const OFF_FIELDS = "product_name,brands,nutriments,serving_quantity,serving_size";
