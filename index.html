@@ -84,6 +84,10 @@
   .field input { font: inherit; font-size: 16px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); width: 100%; font-variant-numeric: tabular-nums; }
   .field.big input { font-size: 22px; font-weight: 800; }
   .per100-label { font-size: 11px; font-weight: 700; color: var(--mut); text-transform: uppercase; letter-spacing: 0.04em; margin: 12px 0 6px; }
+  .basis-row { display: flex; align-items: center; gap: 8px; margin: 14px 0 4px; flex-wrap: wrap; }
+  .basis-label { font-size: 11px; font-weight: 700; color: var(--mut); text-transform: uppercase; letter-spacing: 0.04em; }
+  .basis-row input { width: 78px; font: inherit; font-size: 16px; font-weight: 800; padding: 7px 8px; border: 1.5px solid var(--ink); border-radius: 8px; background: #fff; text-align: center; font-variant-numeric: tabular-nums; }
+  .basis-hint { font-size: 12px; color: var(--mut); margin-bottom: 8px; }
   .grid4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .grams-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 12px; }
   .grams-row .field { flex: 1; }
@@ -158,7 +162,13 @@
       <input id="f-name" placeholder="e.g. FAGE Total 0%">
     </label>
 
-    <div class="per100-label">Per 100 g — edit if the database is off</div>
+    <div class="basis-row">
+      <span class="basis-label">Nutrition per</span>
+      <input id="f-basis" type="number" inputmode="decimal" value="100">
+      <span class="basis-label">g</span>
+      <button class="chip hidden" id="f-basis-serving" type="button"></button>
+    </div>
+    <div class="basis-hint">Type the macros exactly as printed for that amount — per 100 g or per serving, whichever the label shows.</div>
     <div class="grid4">
       <label class="field"><span>kcal</span><input id="f-kcal" type="number" inputmode="decimal"></label>
       <label class="field"><span>Protein g</span><input id="f-protein" type="number" inputmode="decimal"></label>
@@ -372,6 +382,15 @@ function openReview(d) {
   $("f-protein").value = d.protein ?? "";
   $("f-carbs").value = d.carbs ?? "";
   $("f-fat").value = d.fat ?? "";
+  $("f-basis").value = d.basisG ?? 100;
+  const bBtn = $("f-basis-serving");
+  if (d.servingG) {
+    bBtn.classList.remove("hidden");
+    bBtn.textContent = "serving = " + d.servingG + "g";
+    bBtn.onclick = () => { $("f-basis").value = d.servingG; updatePreview(); };
+  } else {
+    bBtn.classList.add("hidden");
+  }
   $("f-grams").value = d.grams ?? "";
   const sBtn = $("f-serving");
   if (d.servingG) { sBtn.classList.remove("hidden"); sBtn.textContent = `1 serving = ${d.servingG}g`; }
@@ -389,24 +408,26 @@ function closeReview() {
 }
 
 function updatePreview() {
-  const g = num($("f-grams").value), kcal = num($("f-kcal").value);
-  const ok = g > 0 && kcal !== null;
+  const g = num($("f-grams").value), kcal = num($("f-kcal").value), basis = num($("f-basis").value);
+  const ok = g > 0 && kcal !== null && basis > 0;
   $("btn-add").disabled = !ok;
   $("preview").classList.toggle("hidden", !ok);
   if (ok) {
-    const f = g / 100;
+    const f = g / basis;
     $("preview").innerHTML =
-      `Adds <b>${Math.round(kcal * f)} kcal</b> · ${r1((num($("f-protein").value) || 0) * f)}P / ` +
+      `${r1(g)}g at ${r1(basis)}g per label serving → adds <b>${Math.round(kcal * f)} kcal</b> · ${r1((num($("f-protein").value) || 0) * f)}P / ` +
       `${r1((num($("f-carbs").value) || 0) * f)}C / ${r1((num($("f-fat").value) || 0) * f)}F`;
   }
 }
-["f-grams", "f-kcal", "f-protein", "f-carbs", "f-fat"].forEach(id => $(id).addEventListener("input", updatePreview));
+["f-grams", "f-kcal", "f-protein", "f-carbs", "f-fat", "f-basis"].forEach(id => $(id).addEventListener("input", updatePreview));
 $("f-serving").onclick = () => { $("f-grams").value = draft.servingG; updatePreview(); };
 $("btn-cancel").onclick = closeReview;
 
 $("btn-add").onclick = () => {
-  const g = num($("f-grams").value), f = g / 100;
-  const per100 = {
+  const g = num($("f-grams").value);
+  const basis = num($("f-basis").value) || 100;
+  const f = g / basis;
+  const vals = { // as entered, per `basis` grams
     kcal: num($("f-kcal").value) || 0, protein: num($("f-protein").value) || 0,
     carbs: num($("f-carbs").value) || 0, fat: num($("f-fat").value) || 0
   };
@@ -414,13 +435,20 @@ $("btn-add").onclick = () => {
     id: uid(),
     name: $("f-name").value.trim() || "Unnamed food",
     grams: r1(g),
-    kcal: Math.round(per100.kcal * f),
-    protein: r1(per100.protein * f),
-    carbs: r1(per100.carbs * f),
-    fat: r1(per100.fat * f),
+    kcal: Math.round(vals.kcal * f),
+    protein: r1(vals.protein * f),
+    carbs: r1(vals.carbs * f),
+    fat: r1(vals.fat * f),
     time: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
   });
   persistDay();
+
+  // library always stores per-100g, whatever basis was entered
+  const norm = 100 / basis;
+  const per100 = {
+    kcal: r1(vals.kcal * norm), protein: r1(vals.protein * norm),
+    carbs: r1(vals.carbs * norm), fat: r1(vals.fat * norm)
+  };
 
   if (draft.fromLibraryId) {
     library = library.map(it => it.id === draft.fromLibraryId ? Object.assign({}, it, { lastGrams: r1(g) }) : it);
