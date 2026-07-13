@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#101010">
+<title>MacroScan</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  :root {
+    --paper: #FCFCF8; --ink: #101010; --mut: #6E6E66; --line: #DDDDD4;
+    --act: #1743E8; --act-ink: #fff;
+  }
+  html, body { background: var(--paper); }
+  body {
+    color: var(--ink);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    max-width: 520px; margin: 0 auto; padding: 0 14px 60px;
+    -webkit-text-size-adjust: 100%;
+  }
+  button { font: inherit; cursor: pointer; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--act); outline-offset: 2px; }
+  .hidden { display: none !important; }
+
+  .topbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 12px; }
+  .brand { font-weight: 900; font-size: 17px; letter-spacing: 0.06em; }
+  .brand span { color: var(--act); }
+  nav { display: flex; gap: 4px; }
+  nav button { border: none; background: none; font-size: 13px; font-weight: 600; color: var(--mut); padding: 6px 9px; border-radius: 999px; }
+  nav button.on { background: var(--ink); color: var(--paper); }
+
+  /* nutrition-facts totals panel */
+  .facts { border: 2px solid var(--ink); background: #fff; padding: 12px 14px 10px; }
+  .facts-title { font-size: 30px; font-weight: 900; letter-spacing: -0.02em; line-height: 1; }
+  .facts-date { font-size: 12px; padding: 5px 0 7px; border-bottom: 1px solid var(--ink); }
+  .rule-thick { height: 9px; background: var(--ink); }
+  .rule-mid { height: 4px; background: var(--ink); margin: 8px 0 4px; }
+  .cal-row { display: flex; justify-content: space-between; align-items: flex-end; padding-top: 8px; }
+  .cal-label { font-size: 20px; font-weight: 900; }
+  .cal-sub { font-size: 12px; color: var(--mut); }
+  .cal-num { font-size: 44px; font-weight: 900; line-height: 0.9; font-variant-numeric: tabular-nums; }
+  .dv-head { text-align: right; font-size: 11px; font-weight: 700; padding: 2px 0 4px; border-bottom: 1px solid var(--ink); }
+  .macro-row { display: flex; justify-content: space-between; padding: 7px 0 3px; font-size: 14px; }
+  .macro-name { font-weight: 800; }
+  .macro-val { font-weight: 400; color: var(--mut); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .macro-pct { font-weight: 800; font-variant-numeric: tabular-nums; }
+  .bar { height: 3px; background: var(--line); }
+  .bar-fill { height: 100%; background: var(--ink); transition: width 0.4s ease; }
+  .facts-foot { font-size: 12px; color: var(--mut); padding-top: 6px; }
+  @media (prefers-reduced-motion: reduce) { .bar-fill { transition: none; } .spinner { animation: none !important; } }
+
+  .actions { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .primary { background: var(--act); color: var(--act-ink); border: none; font-weight: 800; font-size: 16px; padding: 15px; border-radius: 10px; width: 100%; }
+  .primary:disabled { opacity: 0.4; cursor: default; }
+  .ghost { background: none; border: 1.5px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 14px; padding: 11px; border-radius: 10px; }
+  .err { color: #B4231A; font-size: 13px; padding: 4px 2px; }
+
+  .section-label { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; color: var(--mut); margin: 20px 0 8px; }
+  .empty { color: var(--mut); font-size: 14px; padding: 10px 2px; }
+
+  .lib-list { display: flex; flex-direction: column; gap: 6px; }
+  .lib-item { display: flex; gap: 6px; align-items: stretch; }
+  .lib-add { flex: 1; text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 9px 12px; display: flex; flex-direction: column; gap: 1px; }
+  .lib-name { font-weight: 700; font-size: 14px; }
+  .lib-meta { font-size: 12px; color: var(--mut); font-variant-numeric: tabular-nums; }
+  .x { border: none; background: none; color: var(--mut); font-size: 20px; padding: 0 8px; border-radius: 8px; line-height: 1; }
+
+  .entry { display: flex; align-items: center; gap: 6px; padding: 9px 2px; border-bottom: 1px solid var(--line); }
+  .entry-main { flex: 1; }
+  .entry-name { font-weight: 700; font-size: 15px; }
+  .entry-g { font-weight: 400; color: var(--mut); font-size: 13px; }
+  .entry-macros { font-size: 12.5px; color: var(--mut); font-variant-numeric: tabular-nums; }
+
+  /* review card */
+  .review { margin-top: 16px; border: 1.5px solid var(--ink); border-radius: 12px; padding: 14px; background: #fff; }
+  .review-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; gap: 8px; }
+  .src { padding: 2px 8px; border-radius: 999px; font-size: 11px; background: #DCE4FB; color: #10307F; white-space: nowrap; }
+  .notes { font-size: 12px; color: var(--mut); margin-bottom: 8px; }
+  .field { display: flex; flex-direction: column; gap: 3px; }
+  .field span { font-size: 11px; font-weight: 700; color: var(--mut); text-transform: uppercase; letter-spacing: 0.04em; }
+  .field input { font: inherit; font-size: 16px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); width: 100%; font-variant-numeric: tabular-nums; }
+  .field.big input { font-size: 22px; font-weight: 800; }
+  .per100-label { font-size: 11px; font-weight: 700; color: var(--mut); text-transform: uppercase; letter-spacing: 0.04em; margin: 12px 0 6px; }
+  .grid4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .grams-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 12px; }
+  .grams-row .field { flex: 1; }
+  .chip { border: 1px solid var(--ink); background: none; font-size: 12px; font-weight: 700; padding: 8px 10px; border-radius: 999px; white-space: nowrap; }
+  .preview { margin-top: 10px; font-size: 14px; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 13px; margin-top: 10px; }
+  .review-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .review-actions .ghost { flex: 1; }
+  .review-actions .primary { flex: 2; padding: 12px; }
+
+  /* scanner overlay */
+  .scanner {
+    position: fixed; inset: 0; background: #000; z-index: 50;
+    display: flex; flex-direction: column;
+  }
+  .scanner video { flex: 1; width: 100%; object-fit: cover; min-height: 0; }
+  .scan-frame {
+    position: absolute; top: 26%; left: 8%; right: 8%; height: 22%;
+    border: 2.5px solid #fff; border-radius: 12px; pointer-events: none;
+    box-shadow: 0 0 0 2000px rgba(0,0,0,0.35);
+  }
+  .scan-top { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 14px; z-index: 2; }
+  .scan-title { color: #fff; font-weight: 800; font-size: 15px; }
+  .scan-close { background: rgba(255,255,255,0.15); color: #fff; border: none; font-size: 22px; width: 40px; height: 40px; border-radius: 50%; line-height: 1; }
+  .scan-bottom { background: #0c0c0c; padding: 14px 14px calc(14px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; z-index: 2; }
+  .scan-status { color: #ddd; font-size: 13px; min-height: 18px; }
+  .scan-status.err { color: #ff9d94; }
+  .code-row { display: flex; gap: 8px; }
+  .code-row input { flex: 1; font: inherit; font-size: 16px; padding: 11px 12px; border-radius: 10px; border: 1px solid #333; background: #1a1a1a; color: #fff; }
+  .code-row button { background: #fff; color: #000; border: none; font-weight: 800; padding: 0 16px; border-radius: 10px; }
+  .spinner { width: 16px; height: 16px; border: 3px solid #444; border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; vertical-align: -3px; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .hist-row { width: 100%; display: flex; justify-content: space-between; align-items: center; border: none; border-bottom: 1px solid var(--line); background: none; text-align: left; padding: 11px 2px; }
+  .hist-kcal { display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; }
+  .hist-kcal span:first-child { font-weight: 900; font-size: 18px; }
+  .hist-diff { font-size: 12px; font-weight: 700; }
+  .hist-diff.under { color: #135A2E; }
+  .hist-diff.over { color: #8C1D14; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">MACRO<span>SCAN</span></div>
+  <nav>
+    <button id="nav-today" class="on">Today</button>
+    <button id="nav-history">History</button>
+    <button id="nav-settings">Targets</button>
+  </nav>
+</header>
+
+<!-- ============ TODAY ============ -->
+<main id="view-today">
+  <section class="facts" id="facts"></section>
+
+  <section class="actions" id="idle-actions">
+    <button class="primary" id="btn-scan">Scan barcode</button>
+    <button class="ghost" id="btn-manual">Enter manually</button>
+    <div class="err hidden" id="action-err"></div>
+  </section>
+
+  <section class="review hidden" id="review">
+    <div class="review-head">
+      <span id="review-src-label">Manual entry</span>
+      <span class="src hidden" id="review-src"></span>
+    </div>
+    <div class="notes hidden" id="review-notes"></div>
+
+    <label class="field">
+      <span>Food name</span>
+      <input id="f-name" placeholder="e.g. FAGE Total 0%">
+    </label>
+
+    <div class="per100-label">Per 100 g — edit if the database is off</div>
+    <div class="grid4">
+      <label class="field"><span>kcal</span><input id="f-kcal" type="number" inputmode="decimal"></label>
+      <label class="field"><span>Protein g</span><input id="f-protein" type="number" inputmode="decimal"></label>
+      <label class="field"><span>Carbs g</span><input id="f-carbs" type="number" inputmode="decimal"></label>
+      <label class="field"><span>Fat g</span><input id="f-fat" type="number" inputmode="decimal"></label>
+    </div>
+
+    <div class="grams-row">
+      <label class="field big">
+        <span>Amount eaten (g)</span>
+        <input id="f-grams" type="number" inputmode="decimal" placeholder="0">
+      </label>
+      <button class="chip hidden" id="f-serving"></button>
+    </div>
+
+    <div class="preview hidden" id="preview"></div>
+
+    <label class="check" id="save-lib-row">
+      <input type="checkbox" id="f-savelib" checked>
+      Save to my foods for quick re-add
+    </label>
+
+    <div class="review-actions">
+      <button class="ghost" id="btn-cancel">Cancel</button>
+      <button class="primary" id="btn-add" disabled>Add to today</button>
+    </div>
+  </section>
+
+  <section id="lib-section" class="hidden">
+    <div class="section-label">My foods</div>
+    <div class="lib-list" id="lib-list"></div>
+  </section>
+
+  <section>
+    <div class="section-label" id="log-label">Log</div>
+    <div id="log-list"></div>
+  </section>
+</main>
+
+<!-- ============ HISTORY ============ -->
+<main id="view-history" class="hidden">
+  <div class="section-label" style="margin-top:4px">Last 14 logged days</div>
+  <div id="hist-list"></div>
+</main>
+
+<!-- ============ SETTINGS ============ -->
+<main id="view-settings" class="hidden">
+  <div class="section-label" style="margin-top:4px">Daily targets</div>
+  <div class="grid4" style="margin-top:10px">
+    <label class="field"><span>Calories</span><input id="t-kcal" type="number" inputmode="numeric"></label>
+    <label class="field"><span>Protein g</span><input id="t-protein" type="number" inputmode="numeric"></label>
+    <label class="field"><span>Carbs g</span><input id="t-carbs" type="number" inputmode="numeric"></label>
+    <label class="field"><span>Fat g</span><input id="t-fat" type="number" inputmode="numeric"></label>
+  </div>
+  <button class="primary" id="btn-save-targets" style="margin-top:14px">Save targets</button>
+  <div class="facts-foot" id="targets-note" style="margin-top:16px"></div>
+</main>
+
+<!-- ============ SCANNER OVERLAY ============ -->
+<div class="scanner hidden" id="scanner">
+  <div class="scan-top">
+    <div class="scan-title">Point at the barcode</div>
+    <button class="scan-close" id="btn-scan-close" aria-label="Close scanner">×</button>
+  </div>
+  <video id="video" playsinline muted></video>
+  <div class="scan-frame"></div>
+  <div class="scan-bottom">
+    <div class="scan-status" id="scan-status">Starting camera…</div>
+    <div class="code-row">
+      <input id="code-input" type="text" inputmode="numeric" placeholder="Or type the barcode digits">
+      <button id="btn-code-go">Look up</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ---------- utils ----------
+const $ = id => document.getElementById(id);
+const r1 = n => Math.round(n * 10) / 10;
+const uid = () => Math.random().toString(36).slice(2, 10);
+const num = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+
+function localDateKey(d = new Date()) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function prettyDate(key) {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+}
+function shortDate(key) {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+function esc(s) { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; }
+
+// ---------- storage (localStorage) ----------
+function sGet(k) { try { const v = localStorage.getItem("mt_" + k); return v ? JSON.parse(v) : null; } catch { return null; } }
+function sSet(k, v) { try { localStorage.setItem("mt_" + k, JSON.stringify(v)); } catch (e) { console.error(e); } }
+
+// ---------- state ----------
+const DEFAULT_TARGETS = { kcal: 2600, protein: 180, carbs: 270, fat: 75 };
+let targets = Object.assign({}, DEFAULT_TARGETS, sGet("settings") || {});
+let library = sGet("library") || [];
+let dateKey = localDateKey();
+let entries = sGet("day_" + dateKey) || [];
+let draft = null; // { source, name, kcal, protein, carbs, fat, servingG, fromLibraryId, notes }
+
+function persistDay() { sSet("day_" + dateKey, entries); }
+
+// ---------- render: totals panel ----------
+function totalsOf(list) {
+  return list.reduce((a, e) => ({
+    kcal: a.kcal + e.kcal, protein: a.protein + e.protein,
+    carbs: a.carbs + e.carbs, fat: a.fat + e.fat
+  }), { kcal: 0, protein: 0, carbs: 0, fat: 0 });
+}
+
+function renderFacts() {
+  const t = totalsOf(entries);
+  const isToday = dateKey === localDateKey();
+  const rows = [["Protein", t.protein, targets.protein], ["Carbs", t.carbs, targets.carbs], ["Fat", t.fat, targets.fat]]
+    .map(([label, val, tgt]) => {
+      const pct = tgt ? Math.round(val / tgt * 100) : 0;
+      return `
+        <div class="macro-row">
+          <div class="macro-name">${label} <span class="macro-val">${r1(val)}g / ${tgt}g</span></div>
+          <div class="macro-pct">${pct}%</div>
+        </div>
+        <div class="bar"><div class="bar-fill" style="width:${Math.min(100, pct)}%"></div></div>`;
+    }).join("");
+  const remain = Math.round(targets.kcal - t.kcal);
+  const foot = remain >= 0
+    ? `${remain} kcal and ${Math.max(0, r1(targets.protein - t.protein))}g protein remaining.`
+    : `${Math.abs(remain)} kcal over target.`;
+  $("facts").innerHTML = `
+    <div class="facts-title">Daily Totals</div>
+    <div class="facts-date">${prettyDate(dateKey)}${isToday ? "" : " (past day)"}</div>
+    <div class="rule-thick"></div>
+    <div class="cal-row">
+      <div><div class="cal-label">Calories</div><div class="cal-sub">target ${targets.kcal}</div></div>
+      <div class="cal-num">${Math.round(t.kcal)}</div>
+    </div>
+    <div class="rule-mid"></div>
+    <div class="dv-head">% of target</div>
+    ${rows}
+    <div class="rule-thick" style="margin-top:12px"></div>
+    <div class="facts-foot">${foot}</div>`;
+  $("btn-add").textContent = "Add to " + (isToday ? "today" : shortDate(dateKey));
+}
+
+// ---------- render: log & library ----------
+function renderLog() {
+  $("log-label").textContent = `Log — ${entries.length} item${entries.length === 1 ? "" : "s"}`;
+  if (!entries.length) {
+    $("log-list").innerHTML = `<div class="empty">Nothing logged yet. Scan a barcode to start the day.</div>`;
+    return;
+  }
+  $("log-list").innerHTML = entries.map(e => `
+    <div class="entry">
+      <div class="entry-main">
+        <div class="entry-name">${esc(e.name)} <span class="entry-g">${e.grams}g</span></div>
+        <div class="entry-macros">${e.kcal} kcal · ${e.protein}P / ${e.carbs}C / ${e.fat}F · ${esc(e.time)}</div>
+      </div>
+      <button class="x" data-del="${e.id}" aria-label="Delete ${esc(e.name)}">×</button>
+    </div>`).join("");
+  $("log-list").querySelectorAll("[data-del]").forEach(b => b.onclick = () => {
+    entries = entries.filter(e => e.id !== b.dataset.del);
+    persistDay(); renderFacts(); renderLog();
+  });
+}
+
+function renderLibrary() {
+  $("lib-section").classList.toggle("hidden", !library.length);
+  $("lib-list").innerHTML = library.map(it => `
+    <div class="lib-item">
+      <button class="lib-add" data-use="${it.id}">
+        <span class="lib-name">${esc(it.name)}</span>
+        <span class="lib-meta">${Math.round(it.per100.kcal)} kcal · ${r1(it.per100.protein)}g protein / 100g</span>
+      </button>
+      <button class="x" data-rm="${it.id}" aria-label="Remove ${esc(it.name)}">×</button>
+    </div>`).join("");
+  $("lib-list").querySelectorAll("[data-use]").forEach(b => b.onclick = () => {
+    const it = library.find(x => x.id === b.dataset.use);
+    if (it) openReview({
+      source: "library", name: it.name,
+      kcal: it.per100.kcal, protein: it.per100.protein, carbs: it.per100.carbs, fat: it.per100.fat,
+      servingG: it.servingG, grams: it.lastGrams ?? it.servingG ?? "", fromLibraryId: it.id
+    });
+  });
+  $("lib-list").querySelectorAll("[data-rm]").forEach(b => b.onclick = () => {
+    library = library.filter(x => x.id !== b.dataset.rm);
+    sSet("library", library); renderLibrary();
+  });
+}
+
+// ---------- review card ----------
+function openReview(d) {
+  draft = d;
+  $("review").classList.remove("hidden");
+  $("idle-actions").classList.add("hidden");
+  $("review-src-label").textContent =
+    d.source === "off" ? "Open Food Facts" : d.source === "library" ? "From your foods" : "Manual entry";
+  $("review-src").classList.toggle("hidden", d.source !== "off");
+  if (d.source === "off") $("review-src").textContent = "barcode " + d.barcode;
+  $("review-notes").classList.toggle("hidden", !d.notes);
+  $("review-notes").textContent = d.notes || "";
+  $("f-name").value = d.name || "";
+  $("f-kcal").value = d.kcal ?? "";
+  $("f-protein").value = d.protein ?? "";
+  $("f-carbs").value = d.carbs ?? "";
+  $("f-fat").value = d.fat ?? "";
+  $("f-grams").value = d.grams ?? "";
+  const sBtn = $("f-serving");
+  if (d.servingG) { sBtn.classList.remove("hidden"); sBtn.textContent = `1 serving = ${d.servingG}g`; }
+  else sBtn.classList.add("hidden");
+  $("save-lib-row").classList.toggle("hidden", d.source === "library");
+  $("f-savelib").checked = true;
+  updatePreview();
+  $("f-grams").focus();
+}
+
+function closeReview() {
+  draft = null;
+  $("review").classList.add("hidden");
+  $("idle-actions").classList.remove("hidden");
+}
+
+function updatePreview() {
+  const g = num($("f-grams").value), kcal = num($("f-kcal").value);
+  const ok = g > 0 && kcal !== null;
+  $("btn-add").disabled = !ok;
+  $("preview").classList.toggle("hidden", !ok);
+  if (ok) {
+    const f = g / 100;
+    $("preview").innerHTML =
+      `Adds <b>${Math.round(kcal * f)} kcal</b> · ${r1((num($("f-protein").value) || 0) * f)}P / ` +
+      `${r1((num($("f-carbs").value) || 0) * f)}C / ${r1((num($("f-fat").value) || 0) * f)}F`;
+  }
+}
+["f-grams", "f-kcal", "f-protein", "f-carbs", "f-fat"].forEach(id => $(id).addEventListener("input", updatePreview));
+$("f-serving").onclick = () => { $("f-grams").value = draft.servingG; updatePreview(); };
+$("btn-cancel").onclick = closeReview;
+
+$("btn-add").onclick = () => {
+  const g = num($("f-grams").value), f = g / 100;
+  const per100 = {
+    kcal: num($("f-kcal").value) || 0, protein: num($("f-protein").value) || 0,
+    carbs: num($("f-carbs").value) || 0, fat: num($("f-fat").value) || 0
+  };
+  entries.push({
+    id: uid(),
+    name: $("f-name").value.trim() || "Unnamed food",
+    grams: r1(g),
+    kcal: Math.round(per100.kcal * f),
+    protein: r1(per100.protein * f),
+    carbs: r1(per100.carbs * f),
+    fat: r1(per100.fat * f),
+    time: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+  });
+  persistDay();
+
+  if (draft.fromLibraryId) {
+    library = library.map(it => it.id === draft.fromLibraryId ? Object.assign({}, it, { lastGrams: r1(g) }) : it);
+  } else if ($("f-savelib").checked) {
+    library.unshift({
+      id: uid(), name: $("f-name").value.trim() || "Unnamed food",
+      per100, servingG: num(draft.servingG) || null, barcode: draft.barcode || null, lastGrams: r1(g)
+    });
+    library = library.slice(0, 60);
+  }
+  sSet("library", library);
+
+  closeReview(); renderFacts(); renderLog(); renderLibrary();
+};
+
+$("btn-manual").onclick = () => openReview({ source: "manual", grams: "" });
+
+// ---------- Open Food Facts lookup ----------
+const OFF_FIELDS = "product_name,brands,nutriments,serving_quantity,serving_size";
+
+async function lookupBarcode(code) {
+  const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=${OFF_FIELDS}`);
+  if (!res.ok && res.status !== 404) throw new Error("network");
+  const j = await res.json().catch(() => ({}));
+  const p = j.product;
+  if (!p || !p.nutriments) return null;
+  const n = p.nutriments;
+  let kcal = n["energy-kcal_100g"];
+  if (kcal == null && n["energy_100g"] != null) kcal = n["energy_100g"] / 4.184; // kJ fallback
+  const name = [p.brands ? p.brands.split(",")[0].trim() : null, p.product_name].filter(Boolean).join(" ") || "Unnamed product";
+  let servingG = num(p.serving_quantity);
+  if (!servingG && typeof p.serving_size === "string") {
+    const m = p.serving_size.match(/([\d.]+)\s*g/i);
+    if (m) servingG = parseFloat(m[1]);
+  }
+  return {
+    name,
+    kcal: kcal != null ? r1(kcal) : null,
+    protein: n.proteins_100g != null ? r1(n.proteins_100g) : null,
+    carbs: n.carbohydrates_100g != null ? r1(n.carbohydrates_100g) : null,
+    fat: n.fat_100g != null ? r1(n.fat_100g) : null,
+    servingG: servingG || null
+  };
+}
+
+// Check library first: rescanning a known food skips the network entirely
+function libraryByBarcode(code) { return library.find(it => it.barcode === code); }
+
+async function handleCode(code) {
+  code = String(code).replace(/\D/g, "");
+  if (code.length < 6) { setScanStatus("That doesn't look like a product barcode.", true); return; }
+
+  const known = libraryByBarcode(code);
+  if (known) {
+    closeScanner();
+    openReview({
+      source: "library", name: known.name,
+      kcal: known.per100.kcal, protein: known.per100.protein, carbs: known.per100.carbs, fat: known.per100.fat,
+      servingG: known.servingG, grams: known.lastGrams ?? known.servingG ?? "", fromLibraryId: known.id
+    });
+    return;
+  }
+
+  setScanStatus(`<span class="spinner"></span>Looking up ${code}…`);
+  try {
+    const food = await lookupBarcode(code);
+    closeScanner();
+    if (food && food.kcal != null) {
+      openReview(Object.assign({ source: "off", barcode: code, grams: food.servingG ?? "" }, food,
+        food.protein == null || food.carbs == null || food.fat == null
+          ? { notes: "Some macros were missing in the database — fill in the blanks from the label." } : {}));
+    } else {
+      openReview({
+        source: "manual", barcode: code, grams: "",
+        notes: `Barcode ${code} isn't in Open Food Facts (common for store brands). Enter it from the label once — it'll be saved for next time.`
+      });
+    }
+  } catch (e) {
+    setScanStatus("Lookup failed — check your connection and try again.", true);
+  }
+}
+
+// ---------- barcode scanning ----------
+let stream = null, zxingReader = null, detectorLoop = null, scanLocked = false;
+
+function setScanStatus(html, isErr) {
+  const el = $("scan-status");
+  el.innerHTML = html;
+  el.classList.toggle("err", !!isErr);
+}
+
+function onDecoded(code) {
+  if (scanLocked) return;
+  scanLocked = true;
+  if (navigator.vibrate) navigator.vibrate(60);
+  handleCode(code);
+}
+
+async function openScanner() {
+  $("action-err").classList.add("hidden");
+  if (!window.isSecureContext) {
+    showActionError("Camera needs HTTPS. Open this page from its GitHub Pages URL, not a downloaded copy.");
+    return;
+  }
+  scanLocked = false;
+  $("scanner").classList.remove("hidden");
+  $("code-input").value = "";
+  setScanStatus("Starting camera…");
+  const video = $("video");
+
+  try {
+    if ("BarcodeDetector" in window) {
+      const supported = await window.BarcodeDetector.getSupportedFormats();
+      const formats = ["ean_13", "ean_8", "upc_a", "upc_e"].filter(f => supported.includes(f));
+      if (formats.length) {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+        video.srcObject = stream;
+        await video.play();
+        const detector = new window.BarcodeDetector({ formats });
+        setScanStatus("Scanning… hold the barcode inside the frame.");
+        const tick = async () => {
+          if (scanLocked || $("scanner").classList.contains("hidden")) return;
+          try {
+            const codes = await detector.detect(video);
+            if (codes.length) { onDecoded(codes[0].rawValue); return; }
+          } catch (e) { /* frame not ready */ }
+          detectorLoop = requestAnimationFrame(tick);
+        };
+        detectorLoop = requestAnimationFrame(tick);
+        return;
+      }
+    }
+    // fallback: ZXing (covers iOS Safari)
+    setScanStatus("Loading scanner…");
+    await loadZXing();
+    zxingReader = new ZXing.BrowserMultiFormatReader();
+    setScanStatus("Scanning… hold the barcode inside the frame.");
+    await zxingReader.decodeFromConstraints(
+      { video: { facingMode: { ideal: "environment" } }, audio: false },
+      video,
+      (result, err) => { if (result) onDecoded(result.getText()); }
+    );
+  } catch (e) {
+    console.error(e);
+    setScanStatus(
+      e && (e.name === "NotAllowedError" || e.name === "SecurityError")
+        ? "Camera permission denied. Allow camera access in your browser settings, or type the barcode below."
+        : "Couldn't start the camera. Type the barcode digits below instead.",
+      true
+    );
+  }
+}
+
+function loadZXing() {
+  if (window.ZXing) return Promise.resolve();
+  return new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js";
+    s.onload = res;
+    s.onerror = () => rej(new Error("Couldn't load the barcode library."));
+    document.head.appendChild(s);
+  });
+}
+
+function closeScanner() {
+  $("scanner").classList.add("hidden");
+  if (detectorLoop) { cancelAnimationFrame(detectorLoop); detectorLoop = null; }
+  if (zxingReader) { try { zxingReader.reset(); } catch (e) {} zxingReader = null; }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  $("video").srcObject = null;
+}
+
+function showActionError(msg) {
+  const el = $("action-err");
+  el.textContent = msg;
+  el.classList.remove("hidden");
+}
+
+$("btn-scan").onclick = openScanner;
+$("btn-scan-close").onclick = closeScanner;
+$("btn-code-go").onclick = () => handleCode($("code-input").value);
+$("code-input").addEventListener("keydown", e => { if (e.key === "Enter") handleCode($("code-input").value); });
+
+// ---------- history ----------
+function renderHistory() {
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith("mt_day_")) keys.push(k.slice(7));
+  }
+  keys.sort().reverse();
+  const rows = [];
+  for (const k of keys.slice(0, 30)) {
+    const day = sGet("day_" + k);
+    if (!day || !day.length) continue;
+    rows.push(Object.assign({ key: k, items: day.length }, totalsOf(day)));
+    if (rows.length >= 14) break;
+  }
+  $("hist-list").innerHTML = rows.length ? rows.map(h => {
+    const diff = Math.round(h.kcal - targets.kcal);
+    return `
+      <button class="hist-row" data-day="${h.key}">
+        <div>
+          <div class="entry-name">${shortDate(h.key)}</div>
+          <div class="entry-macros">${h.items} items · ${r1(h.protein)}g protein</div>
+        </div>
+        <div class="hist-kcal">
+          <span>${Math.round(h.kcal)}</span>
+          <span class="hist-diff ${diff <= 0 ? "under" : "over"}">${diff <= 0 ? "−" + Math.abs(diff) : "+" + diff}</span>
+        </div>
+      </button>`;
+  }).join("") : `<div class="empty">No history yet.</div>`;
+  $("hist-list").querySelectorAll("[data-day]").forEach(b => b.onclick = () => {
+    dateKey = b.dataset.day;
+    entries = sGet("day_" + dateKey) || [];
+    showView("today");
+    renderFacts(); renderLog();
+  });
+}
+
+// ---------- settings ----------
+function renderSettings() {
+  $("t-kcal").value = targets.kcal;
+  $("t-protein").value = targets.protein;
+  $("t-carbs").value = targets.carbs;
+  $("t-fat").value = targets.fat;
+  updateTargetsNote();
+}
+function updateTargetsNote() {
+  const p = num($("t-protein").value) || 0, c = num($("t-carbs").value) || 0, f = num($("t-fat").value) || 0;
+  $("targets-note").textContent =
+    `Protein and carbs are 4 kcal/g, fat is 9 kcal/g. These macros imply ${p * 4 + c * 4 + f * 9} kcal.`;
+}
+["t-protein", "t-carbs", "t-fat"].forEach(id => $(id).addEventListener("input", updateTargetsNote));
+$("btn-save-targets").onclick = () => {
+  targets = {
+    kcal: num($("t-kcal").value) || DEFAULT_TARGETS.kcal,
+    protein: num($("t-protein").value) || DEFAULT_TARGETS.protein,
+    carbs: num($("t-carbs").value) || DEFAULT_TARGETS.carbs,
+    fat: num($("t-fat").value) || DEFAULT_TARGETS.fat
+  };
+  sSet("settings", targets);
+  showView("today"); renderFacts();
+};
+
+// ---------- navigation ----------
+function showView(v) {
+  ["today", "history", "settings"].forEach(x => {
+    $("view-" + x).classList.toggle("hidden", x !== v);
+    $("nav-" + x).classList.toggle("on", x === v);
+  });
+}
+$("nav-today").onclick = () => {
+  dateKey = localDateKey();
+  entries = sGet("day_" + dateKey) || [];
+  showView("today"); renderFacts(); renderLog();
+};
+$("nav-history").onclick = () => { showView("history"); renderHistory(); };
+$("nav-settings").onclick = () => { showView("settings"); renderSettings(); };
+
+// roll over to the new day if the app was left open overnight
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && dateKey !== localDateKey() && !draft) {
+    // only auto-roll if we were viewing what used to be "today"
+  }
+});
+
+// ---------- init ----------
+renderFacts(); renderLog(); renderLibrary();
+</script>
+</body>
+</html>
