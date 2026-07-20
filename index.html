@@ -6,13 +6,24 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="theme-color" content="#101010">
+<meta name="theme-color" content="#D1581F">
 <title>MacroScan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,900&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; }
   :root {
-    --paper: #FCFCF8; --ink: #101010; --mut: #6E6E66; --line: #DDDDD4;
-    --act: #1743E8; --act-ink: #fff;
+    --paper: #F6EEDC;      /* warm sand */
+    --ink: #2A1D10;        /* saddle brown-black */
+    --mut: #8A7660;        /* dusty taupe */
+    --line: #E3D5B8;       /* pale sand */
+    --act: #D1581F;        /* burnt orange */
+    --act2: #E8A33D;       /* amber */
+    --cactus: #5F7F4C;     /* cactus green */
+    --terra: #B0421F;      /* terracotta (over/errors) */
+    --act-ink: #FFF6E8;
+    --sunset: linear-gradient(135deg, #D1581F 0%, #E07B2A 55%, #E8A33D 100%);
   }
   html, body { background: var(--paper); }
   body {
@@ -20,16 +31,22 @@
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     max-width: 520px; margin: 0 auto; padding: 0 14px 60px;
     -webkit-text-size-adjust: 100%;
+    background: radial-gradient(circle at 50% -120px, #F3D9A4 0%, rgba(243,217,164,0) 420px), var(--paper);
   }
   button { font: inherit; cursor: pointer; }
   button:focus-visible, input:focus-visible { outline: 2px solid var(--act); outline-offset: 2px; }
   .hidden { display: none !important; }
 
-  .topbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 12px; }
-  .brand { font-weight: 900; font-size: 17px; letter-spacing: 0.06em; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 10px; gap: 6px; }
+  .brand { font-family: "Fraunces", Georgia, serif; font-style: italic; font-weight: 900; font-size: 20px; letter-spacing: 0.01em; }
   .brand span { color: var(--act); }
-  nav { display: flex; gap: 4px; }
-  nav button { border: none; background: none; font-size: 13px; font-weight: 600; color: var(--mut); padding: 6px 9px; border-radius: 999px; }
+  .sunset-stripe {
+    height: 7px; border-radius: 99px; margin-bottom: 4px;
+    background: linear-gradient(90deg,
+      #C8511B 0 22%, #D1581F 22% 44%, #E07B2A 44% 64%, #E8A33D 64% 82%, #5F7F4C 82% 100%);
+  }
+  nav { display: flex; gap: 2px; }
+  nav button { border: none; background: none; font-size: 12.5px; font-weight: 600; color: var(--mut); padding: 6px 7px; border-radius: 999px; }
   nav button.on { background: var(--ink); color: var(--paper); }
 
   /* nutrition-facts totals panel */
@@ -49,70 +66,79 @@
   .macro-pct { font-weight: 800; font-variant-numeric: tabular-nums; }
   .bar { height: 3px; background: var(--line); }
   .bar-fill { height: 100%; background: var(--ink); transition: width 0.4s ease; }
+  .micro-row { display: flex; justify-content: space-between; padding: 5px 0 5px 14px; font-size: 12.5px; border-bottom: 1px solid var(--line); }
+  .micro-row:last-of-type { border-bottom: none; }
+  .micro-name { font-weight: 400; }
+  .micro-name b { font-weight: 700; }
+  .micro-pct { font-weight: 700; font-variant-numeric: tabular-nums; }
   .facts-foot { font-size: 12px; color: var(--mut); padding-top: 6px; }
+  /* the label stays printed ink-on-white, pasted onto the poster */
+  .facts { border-color: #111; background: #fff; color: #111; box-shadow: 4px 4px 0 rgba(42,29,16,0.18); }
+  .facts .rule-thick, .facts .rule-mid, .facts .bar-fill { background: #111; }
+  .facts .facts-date, .facts .dv-head { border-color: #111; color: #111; }
+  .facts .bar { background: #E7E7E7; }
+  .facts .micro-row { border-color: #E7E7E7; }
+  .facts .cal-sub, .facts .macro-val, .facts .facts-foot { color: #6B6B6B; }
   @media (prefers-reduced-motion: reduce) { .bar-fill { transition: none; } .spinner { animation: none !important; } }
 
   .actions { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
-  .primary { background: var(--act); color: var(--act-ink); border: none; font-weight: 800; font-size: 16px; padding: 15px; border-radius: 10px; width: 100%; }
-  .primary:disabled { opacity: 0.4; cursor: default; }
-  .ghost { background: none; border: 1.5px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 14px; padding: 11px; border-radius: 10px; }
-  .err { color: #B4231A; font-size: 13px; padding: 4px 2px; }
+  .primary {
+    background: var(--sunset); color: var(--act-ink); border: none;
+    font-family: "Fraunces", Georgia, serif; font-weight: 700; font-size: 17px;
+    padding: 15px; border-radius: 12px; width: 100%;
+    box-shadow: 0 3px 0 rgba(176,66,31,0.45);
+  }
+  .primary:disabled { opacity: 0.4; cursor: default; box-shadow: none; }
+  .ghost { background: rgba(255,246,232,0.55); border: 1.5px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 14px; padding: 11px; border-radius: 12px; }
+  .err { color: var(--terra); font-size: 13px; padding: 4px 2px; }
 
   .section-label { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; color: var(--mut); margin: 20px 0 8px; }
   .empty { color: var(--mut); font-size: 14px; padding: 10px 2px; }
 
   .lib-list { display: flex; flex-direction: column; gap: 6px; }
   .lib-item { display: flex; gap: 6px; align-items: stretch; }
-  .lib-add { flex: 1; text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 9px 12px; display: flex; flex-direction: column; gap: 1px; }
+  .lib-add { flex: 1; text-align: left; border: 1px solid var(--line); background: #FFFBF1; border-radius: 12px; padding: 9px 12px; display: flex; flex-direction: column; gap: 1px; }
   .lib-name { font-weight: 700; font-size: 14px; }
   .lib-meta { font-size: 12px; color: var(--mut); font-variant-numeric: tabular-nums; }
+  .badge { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.04em; padding: 1px 6px; border-radius: 999px; background: #DDE7CF; color: #46603A; vertical-align: 2px; margin-left: 6px; }
   .x { border: none; background: none; color: var(--mut); font-size: 20px; padding: 0 8px; border-radius: 8px; line-height: 1; }
+  .x:hover { color: var(--terra); }
 
   .entry { display: flex; align-items: center; gap: 6px; padding: 9px 2px; border-bottom: 1px solid var(--line); }
-  .entry-main { flex: 1; }
+  .entry-main { flex: 1; border: none; background: none; text-align: left; padding: 0; font: inherit; }
   .entry-name { font-weight: 700; font-size: 15px; }
   .entry-g { font-weight: 400; color: var(--mut); font-size: 13px; }
   .entry-macros { font-size: 12.5px; color: var(--mut); font-variant-numeric: tabular-nums; }
 
   /* review card */
-  .review { margin-top: 16px; border: 1.5px solid var(--ink); border-radius: 12px; padding: 14px; background: #fff; }
+  .review { margin-top: 16px; border: 1.5px solid var(--ink); border-radius: 14px; padding: 14px; background: #FFFBF1; box-shadow: 4px 4px 0 rgba(42,29,16,0.12); }
   .review-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; gap: 8px; }
-  .src { padding: 2px 8px; border-radius: 999px; font-size: 11px; background: #DCE4FB; color: #10307F; white-space: nowrap; }
+  .src { padding: 2px 8px; border-radius: 999px; font-size: 11px; background: #F6DFB8; color: #7A4A10; white-space: nowrap; }
   .notes { font-size: 12px; color: var(--mut); margin-bottom: 8px; }
   .field { display: flex; flex-direction: column; gap: 3px; }
   .field span { font-size: 11px; font-weight: 700; color: var(--mut); text-transform: uppercase; letter-spacing: 0.04em; }
   .field input { font: inherit; font-size: 16px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); width: 100%; font-variant-numeric: tabular-nums; }
   .field.big input { font-size: 22px; font-weight: 800; }
-  .per100-label { font-size: 11px; font-weight: 700; color: var(--mut); text-transform: uppercase; letter-spacing: 0.04em; margin: 12px 0 6px; }
   .basis-row { display: flex; align-items: center; gap: 8px; margin: 14px 0 4px; flex-wrap: wrap; }
   .basis-label { font-size: 11px; font-weight: 700; color: var(--mut); text-transform: uppercase; letter-spacing: 0.04em; }
-  .basis-row input { width: 78px; font: inherit; font-size: 16px; font-weight: 800; padding: 7px 8px; border: 1.5px solid var(--ink); border-radius: 8px; background: #fff; text-align: center; font-variant-numeric: tabular-nums; }
+  .basis-row input { width: 78px; font: inherit; font-size: 16px; font-weight: 800; padding: 7px 8px; border: 1.5px solid var(--ink); border-radius: 8px; background: #FFFBF1; text-align: center; font-variant-numeric: tabular-nums; }
   .basis-hint { font-size: 12px; color: var(--mut); margin-bottom: 8px; }
-  .psearch { width: 100%; font: inherit; font-size: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); margin-bottom: 8px; }
-  .produce-list { max-height: 46vh; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; -webkit-overflow-scrolling: touch; }
-  .produce-item { text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .produce-macros { font-size: 12px; color: var(--mut); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .grid4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .micro-toggle { background: none; border: none; color: var(--act); font-weight: 700; font-size: 13px; padding: 10px 0 2px; text-align: left; }
   .grams-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 12px; }
   .grams-row .field { flex: 1; }
   .chip { border: 1px solid var(--ink); background: none; font-size: 12px; font-weight: 700; padding: 8px 10px; border-radius: 999px; white-space: nowrap; }
   .preview { margin-top: 10px; font-size: 14px; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; }
-  .check { display: flex; gap: 8px; align-items: center; font-size: 13px; margin-top: 10px; }
   .review-actions { display: flex; gap: 8px; margin-top: 14px; }
   .review-actions .ghost { flex: 1; }
   .review-actions .primary { flex: 2; padding: 12px; }
 
+  .psearch { width: 100%; font: inherit; font-size: 16px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; background: #FFFBF1; margin: 4px 0 10px; }
+
   /* scanner overlay */
-  .scanner {
-    position: fixed; inset: 0; background: #000; z-index: 50;
-    display: flex; flex-direction: column;
-  }
+  .scanner { position: fixed; inset: 0; background: #000; z-index: 50; display: flex; flex-direction: column; }
   .scanner video { flex: 1; width: 100%; object-fit: cover; min-height: 0; }
-  .scan-frame {
-    position: absolute; top: 26%; left: 8%; right: 8%; height: 22%;
-    border: 2.5px solid #fff; border-radius: 12px; pointer-events: none;
-    box-shadow: 0 0 0 2000px rgba(0,0,0,0.35);
-  }
+  .scan-frame { position: absolute; top: 26%; left: 8%; right: 8%; height: 22%; border: 2.5px solid #fff; border-radius: 12px; pointer-events: none; box-shadow: 0 0 0 2000px rgba(0,0,0,0.35); }
   .scan-top { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 14px; z-index: 2; }
   .scan-title { color: #fff; font-weight: 800; font-size: 15px; }
   .scan-close { background: rgba(255,255,255,0.15); color: #fff; border: none; font-size: 22px; width: 40px; height: 40px; border-radius: 50%; line-height: 1; }
@@ -129,8 +155,8 @@
   .hist-kcal { display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; }
   .hist-kcal span:first-child { font-weight: 900; font-size: 18px; }
   .hist-diff { font-size: 12px; font-weight: 700; }
-  .hist-diff.under { color: #135A2E; }
-  .hist-diff.over { color: #8C1D14; }
+  .hist-diff.under { color: var(--cactus); }
+  .hist-diff.over { color: var(--terra); }
 </style>
 </head>
 <body>
@@ -139,10 +165,12 @@
   <div class="brand">MACRO<span>SCAN</span></div>
   <nav>
     <button id="nav-today" class="on">Today</button>
+    <button id="nav-foods">Foods</button>
     <button id="nav-history">History</button>
     <button id="nav-settings">Targets</button>
   </nav>
 </header>
+<div class="sunset-stripe" aria-hidden="true"></div>
 
 <!-- ============ TODAY ============ -->
 <main id="view-today">
@@ -150,18 +178,9 @@
 
   <section class="actions" id="idle-actions">
     <button class="primary" id="btn-scan">Scan barcode</button>
-    <button class="ghost" id="btn-produce">Add produce</button>
+    <button class="ghost" id="btn-foods">Search foods &amp; produce</button>
     <button class="ghost" id="btn-manual">Enter manually</button>
     <div class="err hidden" id="action-err"></div>
-  </section>
-
-  <section class="review hidden" id="produce-picker">
-    <div class="review-head">
-      <span>Produce — USDA per 100 g</span>
-      <button class="x" id="btn-produce-close" aria-label="Close produce list">×</button>
-    </div>
-    <input id="produce-search" class="psearch" type="search" placeholder="Search produce…" autocomplete="off">
-    <div class="produce-list" id="produce-list"></div>
   </section>
 
   <section class="review hidden" id="review">
@@ -182,7 +201,8 @@
       <span class="basis-label">g</span>
       <button class="chip hidden" id="f-basis-serving" type="button"></button>
     </div>
-    <div class="basis-hint">Type the macros exactly as printed for that amount — per 100 g or per serving, whichever the label shows.</div>
+    <div class="basis-hint">Type the values exactly as printed for that amount — per 100 g or per serving, whichever the label shows.</div>
+
     <div class="grid4">
       <label class="field"><span>kcal</span><input id="f-kcal" type="number" inputmode="decimal"></label>
       <label class="field"><span>Protein g</span><input id="f-protein" type="number" inputmode="decimal"></label>
@@ -190,20 +210,26 @@
       <label class="field"><span>Fat g</span><input id="f-fat" type="number" inputmode="decimal"></label>
     </div>
 
+    <button class="micro-toggle" id="btn-micros" type="button">Micros ▸</button>
+    <div class="grid4 hidden" id="micro-grid">
+      <label class="field"><span>Fiber g</span><input id="f-fiber" type="number" inputmode="decimal"></label>
+      <label class="field"><span>Sugar g</span><input id="f-sugar" type="number" inputmode="decimal"></label>
+      <label class="field"><span>Sat fat g</span><input id="f-satfat" type="number" inputmode="decimal"></label>
+      <label class="field"><span>Sodium mg</span><input id="f-sodium" type="number" inputmode="decimal"></label>
+      <label class="field"><span>Potassium mg</span><input id="f-potassium" type="number" inputmode="decimal"></label>
+      <label class="field"><span>Calcium mg</span><input id="f-calcium" type="number" inputmode="decimal"></label>
+      <label class="field"><span>Iron mg</span><input id="f-iron" type="number" inputmode="decimal"></label>
+    </div>
+
     <div class="grams-row">
       <label class="field big">
         <span>Amount eaten (g)</span>
         <input id="f-grams" type="number" inputmode="decimal" placeholder="0">
       </label>
-      <button class="chip hidden" id="f-serving"></button>
+      <button class="chip hidden" id="f-serving" type="button"></button>
     </div>
 
     <div class="preview hidden" id="preview"></div>
-
-    <label class="check" id="save-lib-row">
-      <input type="checkbox" id="f-savelib" checked>
-      Save to my foods for quick re-add
-    </label>
 
     <div class="review-actions">
       <button class="ghost" id="btn-cancel">Cancel</button>
@@ -211,15 +237,23 @@
     </div>
   </section>
 
-  <section id="lib-section" class="hidden">
-    <div class="section-label">My foods</div>
-    <div class="lib-list" id="lib-list"></div>
+  <section id="recent-section" class="hidden">
+    <div class="section-label">Recent foods</div>
+    <div class="lib-list" id="recent-list"></div>
   </section>
 
   <section>
     <div class="section-label" id="log-label">Log</div>
     <div id="log-list"></div>
   </section>
+</main>
+
+<!-- ============ FOODS ============ -->
+<main id="view-foods" class="hidden">
+  <div class="section-label" style="margin-top:4px">Your foods &amp; produce</div>
+  <input id="foods-search" class="psearch" type="search" placeholder="Search your foods, USDA staples, or the full USDA database…" autocomplete="off">
+  <div id="foods-list"></div>
+  <div id="fdc-zone" style="margin-top:10px"></div>
 </main>
 
 <!-- ============ HISTORY ============ -->
@@ -239,6 +273,10 @@
   </div>
   <button class="primary" id="btn-save-targets" style="margin-top:14px">Save targets</button>
   <div class="facts-foot" id="targets-note" style="margin-top:16px"></div>
+  <div class="section-label" style="margin-top:20px">USDA search key (optional)</div>
+  <label class="field"><span>FoodData Central API key</span><input id="t-fdckey" type="text" autocomplete="off" placeholder="using shared DEMO_KEY"></label>
+  <div class="facts-foot" style="margin-top:6px">The Foods tab can search USDA's full database (~400k foods). It works out of the box on the shared DEMO_KEY, which is rate-limited — if searches start failing, get a free instant key at fdc.nal.usda.gov (API Key Signup) and paste it here.</div>
+  <div class="facts-foot" style="margin-top:8px">Micronutrients are tracked against FDA adult Daily Values: fiber 28 g, sat fat 20 g (limit), sodium 2,300 mg (limit), potassium 4,700 mg, calcium 1,300 mg, iron 18 mg. Sugar has no % shown.</div>
 </main>
 
 <!-- ============ SCANNER OVERLAY ============ -->
@@ -280,32 +318,58 @@ function shortDate(key) {
 }
 function esc(s) { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; }
 
-// ---------- storage (localStorage) ----------
+// ---------- storage ----------
 function sGet(k) { try { const v = localStorage.getItem("mt_" + k); return v ? JSON.parse(v) : null; } catch { return null; } }
 function sSet(k, v) { try { localStorage.setItem("mt_" + k, JSON.stringify(v)); } catch (e) { console.error(e); } }
+
+// ---------- nutrient config ----------
+// key, field id, label, unit, FDA adult DV (null = no %), isLimit
+const MACROS = ["kcal", "protein", "carbs", "fat"];
+const MICROS = [
+  ["fiber", "f-fiber", "Dietary fiber", "g", 28, false],
+  ["sugar", "f-sugar", "Total sugars", "g", null, false],
+  ["satfat", "f-satfat", "Saturated fat", "g", 20, true],
+  ["sodium", "f-sodium", "Sodium", "mg", 2300, true],
+  ["potassium", "f-potassium", "Potassium", "mg", 4700, false],
+  ["calcium", "f-calcium", "Calcium", "mg", 1300, false],
+  ["iron", "f-iron", "Iron", "mg", 18, false]
+];
+const ALL_KEYS = MACROS.concat(MICROS.map(m => m[0]));
 
 // ---------- state ----------
 const DEFAULT_TARGETS = { kcal: 2600, protein: 180, carbs: 270, fat: 75 };
 let targets = Object.assign({}, DEFAULT_TARGETS, sGet("settings") || {});
-let library = sGet("library") || [];
+let library = (sGet("library") || []).map(migrateLibItem);
 let dateKey = localDateKey();
-let entries = sGet("day_" + dateKey) || [];
-let draft = null; // { source, name, kcal, protein, carbs, fat, servingG, fromLibraryId, notes }
+let entries = loadDay(dateKey);
+let draft = null;
 
+// entries store per100 (all nutrients) + grams; old v1 entries stored scaled values — migrate on read
+function migrateEntry(e) {
+  if (e.per100) return e;
+  const f = e.grams > 0 ? 100 / e.grams : 0;
+  e.per100 = {
+    kcal: r1((e.kcal || 0) * f), protein: r1((e.protein || 0) * f),
+    carbs: r1((e.carbs || 0) * f), fat: r1((e.fat || 0) * f)
+  };
+  return e;
+}
+function migrateLibItem(it) { it.per100 = it.per100 || {}; return it; }
+function loadDay(key) { return (sGet("day_" + key) || []).map(migrateEntry); }
 function persistDay() { sSet("day_" + dateKey, entries); }
 
-// ---------- render: totals panel ----------
+function scaled(e, key) { return (e.per100[key] || 0) * e.grams / 100; }
 function totalsOf(list) {
-  return list.reduce((a, e) => ({
-    kcal: a.kcal + e.kcal, protein: a.protein + e.protein,
-    carbs: a.carbs + e.carbs, fat: a.fat + e.fat
-  }), { kcal: 0, protein: 0, carbs: 0, fat: 0 });
+  const t = {};
+  ALL_KEYS.forEach(k => { t[k] = list.reduce((a, e) => a + scaled(e, k), 0); });
+  return t;
 }
 
+// ---------- render: totals panel ----------
 function renderFacts() {
   const t = totalsOf(entries);
   const isToday = dateKey === localDateKey();
-  const rows = [["Protein", t.protein, targets.protein], ["Carbs", t.carbs, targets.carbs], ["Fat", t.fat, targets.fat]]
+  const macroRows = [["Protein", t.protein, targets.protein], ["Carbs", t.carbs, targets.carbs], ["Fat", t.fat, targets.fat]]
     .map(([label, val, tgt]) => {
       const pct = tgt ? Math.round(val / tgt * 100) : 0;
       return `
@@ -315,6 +379,16 @@ function renderFacts() {
         </div>
         <div class="bar"><div class="bar-fill" style="width:${Math.min(100, pct)}%"></div></div>`;
     }).join("");
+  const microRows = MICROS.map(([key, , label, unit, dv, isLimit]) => {
+    const val = t[key] || 0;
+    const disp = unit === "mg" ? Math.round(val) : r1(val);
+    const pct = dv ? Math.round(val / dv * 100) + "%" : "—";
+    return `
+      <div class="micro-row">
+        <div class="micro-name"><b>${label}</b> ${disp}${unit}${dv ? ` / ${dv.toLocaleString()}${unit}${isLimit ? " limit" : ""}` : ""}</div>
+        <div class="micro-pct">${pct}</div>
+      </div>`;
+  }).join("");
   const remain = Math.round(targets.kcal - t.kcal);
   const foot = remain >= 0
     ? `${remain} kcal and ${Math.max(0, r1(targets.protein - t.protein))}g protein remaining.`
@@ -329,58 +403,87 @@ function renderFacts() {
     </div>
     <div class="rule-mid"></div>
     <div class="dv-head">% of target</div>
-    ${rows}
-    <div class="rule-thick" style="margin-top:12px"></div>
+    ${macroRows}
+    <div class="rule-mid"></div>
+    ${microRows}
+    <div class="rule-thick" style="margin-top:8px"></div>
     <div class="facts-foot">${foot}</div>`;
-  $("btn-add").textContent = "Add to " + (isToday ? "today" : shortDate(dateKey));
+  $("btn-add").textContent = draft && draft.editId ? "Save changes" : "Add to " + (isToday ? "today" : shortDate(dateKey));
 }
 
-// ---------- render: log & library ----------
+// ---------- render: log & recents ----------
 function renderLog() {
-  $("log-label").textContent = `Log — ${entries.length} item${entries.length === 1 ? "" : "s"}`;
+  $("log-label").textContent = `Log — ${entries.length} item${entries.length === 1 ? "" : "s"} · tap to edit`;
   if (!entries.length) {
-    $("log-list").innerHTML = `<div class="empty">Nothing logged yet. Scan a barcode to start the day.</div>`;
+    $("log-list").innerHTML = `<div class="empty">Nothing logged yet 🌵 Scan a barcode to start the day.</div>`;
     return;
   }
   $("log-list").innerHTML = entries.map(e => `
     <div class="entry">
-      <div class="entry-main">
+      <button class="entry-main" data-edit="${e.id}">
         <div class="entry-name">${esc(e.name)} <span class="entry-g">${e.grams}g</span></div>
-        <div class="entry-macros">${e.kcal} kcal · ${e.protein}P / ${e.carbs}C / ${e.fat}F · ${esc(e.time)}</div>
-      </div>
+        <div class="entry-macros">${Math.round(scaled(e, "kcal"))} kcal · ${r1(scaled(e, "protein"))}P / ${r1(scaled(e, "carbs"))}C / ${r1(scaled(e, "fat"))}F · ${esc(e.time)}</div>
+      </button>
       <button class="x" data-del="${e.id}" aria-label="Delete ${esc(e.name)}">×</button>
     </div>`).join("");
   $("log-list").querySelectorAll("[data-del]").forEach(b => b.onclick = () => {
     entries = entries.filter(e => e.id !== b.dataset.del);
     persistDay(); renderFacts(); renderLog();
   });
+  $("log-list").querySelectorAll("[data-edit]").forEach(b => b.onclick = () => {
+    const e = entries.find(x => x.id === b.dataset.edit);
+    if (!e) return;
+    openReview(Object.assign({
+      source: "entry", editId: e.id, name: e.name, barcode: e.barcode || null,
+      grams: e.grams, basisG: 100, servingG: e.servingG || null, unitName: e.unitName || null
+    }, e.per100));
+  });
 }
 
-function renderLibrary() {
-  $("lib-section").classList.toggle("hidden", !library.length);
-  $("lib-list").innerHTML = library.map(it => `
+function libRowHTML(it, action) {
+  return `
     <div class="lib-item">
-      <button class="lib-add" data-use="${it.id}">
-        <span class="lib-name">${esc(it.name)}</span>
-        <span class="lib-meta">${Math.round(it.per100.kcal)} kcal · ${r1(it.per100.protein)}g protein / 100g</span>
+      <button class="lib-add" data-${action}="${it.id}">
+        <span class="lib-name">${esc(it.name)}${it.barcode ? "" : ""}</span>
+        <span class="lib-meta">${Math.round(it.per100.kcal || 0)} kcal · ${r1(it.per100.protein || 0)}g protein / 100g</span>
       </button>
       <button class="x" data-rm="${it.id}" aria-label="Remove ${esc(it.name)}">×</button>
-    </div>`).join("");
-  $("lib-list").querySelectorAll("[data-use]").forEach(b => b.onclick = () => {
+    </div>`;
+}
+
+function openLibItem(it) {
+  openReview(Object.assign({
+    source: "library", fromLibraryId: it.id, name: it.name, barcode: it.barcode || null,
+    servingG: it.servingG || null, unitName: it.unitName || null,
+    grams: it.lastGrams ?? it.servingG ?? "", basisG: 100
+  }, it.per100));
+}
+
+function renderRecents() {
+  const top = library.slice(0, 6);
+  $("recent-section").classList.toggle("hidden", !top.length);
+  $("recent-list").innerHTML = top.map(it => libRowHTML(it, "use")).join("");
+  wireLibButtons($("recent-list"));
+}
+
+function wireLibButtons(root) {
+  root.querySelectorAll("[data-use]").forEach(b => b.onclick = () => {
     const it = library.find(x => x.id === b.dataset.use);
-    if (it) openReview({
-      source: "library", name: it.name,
-      kcal: it.per100.kcal, protein: it.per100.protein, carbs: it.per100.carbs, fat: it.per100.fat,
-      servingG: it.servingG, grams: it.lastGrams ?? it.servingG ?? "", fromLibraryId: it.id
-    });
+    if (it) { showView("today"); openLibItem(it); }
   });
-  $("lib-list").querySelectorAll("[data-rm]").forEach(b => b.onclick = () => {
+  root.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => {
     library = library.filter(x => x.id !== b.dataset.rm);
-    sSet("library", library); renderLibrary();
+    sSet("library", library); renderRecents(); renderFoods();
   });
 }
 
 // ---------- review card ----------
+function setMicroVisibility(show) {
+  $("micro-grid").classList.toggle("hidden", !show);
+  $("btn-micros").textContent = show ? "Micros ▾" : "Micros ▸";
+}
+$("btn-micros").onclick = () => setMicroVisibility($("micro-grid").classList.contains("hidden"));
+
 function openReview(d) {
   draft = d;
   $("review").classList.remove("hidden");
@@ -388,7 +491,9 @@ function openReview(d) {
   $("review-src-label").textContent =
     d.source === "off" ? "Open Food Facts" :
     d.source === "library" ? "From your foods" :
-    d.source === "produce" ? "Produce — USDA" : "Manual entry";
+    d.source === "produce" ? "Produce — USDA" :
+    d.source === "fdc" ? "USDA FoodData Central" :
+    d.source === "entry" ? "Edit logged item" : "Manual entry";
   $("review-src").classList.toggle("hidden", d.source !== "off");
   if (d.source === "off") $("review-src").textContent = "barcode " + d.barcode;
   $("review-notes").classList.toggle("hidden", !d.notes);
@@ -398,6 +503,13 @@ function openReview(d) {
   $("f-protein").value = d.protein ?? "";
   $("f-carbs").value = d.carbs ?? "";
   $("f-fat").value = d.fat ?? "";
+  let anyMicro = false;
+  MICROS.forEach(([key, fid]) => {
+    const v = d[key];
+    $(fid).value = v ?? "";
+    if (v != null && v !== "") anyMicro = true;
+  });
+  setMicroVisibility(anyMicro);
   $("f-basis").value = d.basisG ?? 100;
   const bBtn = $("f-basis-serving");
   if (d.servingG && (d.source === "off" || d.source === "manual")) {
@@ -412,11 +524,10 @@ function openReview(d) {
   if (d.servingG) {
     sBtn.classList.remove("hidden");
     sBtn.textContent = (d.unitName || "1 serving") + " = " + d.servingG + "g";
-  }
-  else sBtn.classList.add("hidden");
-  $("save-lib-row").classList.toggle("hidden", d.source === "library");
-  $("f-savelib").checked = d.source !== "produce";
+  } else sBtn.classList.add("hidden");
   updatePreview();
+  renderFacts(); // refresh Add button label for edit mode
+  window.scrollTo({ top: 0 });
   $("f-grams").focus();
 }
 
@@ -424,7 +535,10 @@ function closeReview() {
   draft = null;
   $("review").classList.add("hidden");
   $("idle-actions").classList.remove("hidden");
+  renderFacts();
 }
+$("btn-cancel").onclick = closeReview;
+$("f-serving").onclick = () => { if (draft) { $("f-grams").value = draft.servingG; updatePreview(); } };
 
 function updatePreview() {
   const g = num($("f-grams").value), kcal = num($("f-kcal").value), basis = num($("f-basis").value);
@@ -434,151 +548,293 @@ function updatePreview() {
   if (ok) {
     const f = g / basis;
     $("preview").innerHTML =
-      `${r1(g)}g at ${r1(basis)}g per label serving → adds <b>${Math.round(kcal * f)} kcal</b> · ${r1((num($("f-protein").value) || 0) * f)}P / ` +
+      `${r1(g)}g at ${r1(basis)}g basis → <b>${Math.round(kcal * f)} kcal</b> · ${r1((num($("f-protein").value) || 0) * f)}P / ` +
       `${r1((num($("f-carbs").value) || 0) * f)}C / ${r1((num($("f-fat").value) || 0) * f)}F`;
   }
 }
 ["f-grams", "f-kcal", "f-protein", "f-carbs", "f-fat", "f-basis"].forEach(id => $(id).addEventListener("input", updatePreview));
-$("f-serving").onclick = () => { $("f-grams").value = draft.servingG; updatePreview(); };
-$("btn-cancel").onclick = closeReview;
+
+// every add/edit writes the corrected per-100g values back to the library (upsert), so
+// fixes stick and rescans of the same barcode use YOUR numbers, not the database's
+function upsertLibrary(item, fromLibraryId) {
+  let idx = -1;
+  if (fromLibraryId) idx = library.findIndex(x => x.id === fromLibraryId);
+  if (idx < 0 && item.barcode) idx = library.findIndex(x => x.barcode === item.barcode);
+  if (idx < 0) idx = library.findIndex(x => x.name.trim().toLowerCase() === item.name.trim().toLowerCase());
+  if (idx >= 0) {
+    const merged = Object.assign({}, library[idx], item);
+    library.splice(idx, 1);
+    library.unshift(merged);
+  } else {
+    library.unshift(Object.assign({ id: uid() }, item));
+  }
+  library = library.slice(0, 200);
+  sSet("library", library);
+}
 
 $("btn-add").onclick = () => {
   const g = num($("f-grams").value);
   const basis = num($("f-basis").value) || 100;
-  const f = g / basis;
-  const vals = { // as entered, per `basis` grams
-    kcal: num($("f-kcal").value) || 0, protein: num($("f-protein").value) || 0,
-    carbs: num($("f-carbs").value) || 0, fat: num($("f-fat").value) || 0
-  };
-  entries.push({
-    id: uid(),
-    name: $("f-name").value.trim() || "Unnamed food",
-    grams: r1(g),
-    kcal: Math.round(vals.kcal * f),
-    protein: r1(vals.protein * f),
-    carbs: r1(vals.carbs * f),
-    fat: r1(vals.fat * f),
-    time: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
-  });
-  persistDay();
-
-  // library always stores per-100g, whatever basis was entered
   const norm = 100 / basis;
   const per100 = {
-    kcal: r1(vals.kcal * norm), protein: r1(vals.protein * norm),
-    carbs: r1(vals.carbs * norm), fat: r1(vals.fat * norm)
+    kcal: r1((num($("f-kcal").value) || 0) * norm),
+    protein: r1((num($("f-protein").value) || 0) * norm),
+    carbs: r1((num($("f-carbs").value) || 0) * norm),
+    fat: r1((num($("f-fat").value) || 0) * norm)
   };
+  MICROS.forEach(([key, fid]) => {
+    const v = num($(fid).value);
+    per100[key] = v == null ? null : r1(v * norm);
+  });
+  const name = $("f-name").value.trim() || "Unnamed food";
 
-  if (draft.fromLibraryId) {
-    library = library.map(it => it.id === draft.fromLibraryId ? Object.assign({}, it, { lastGrams: r1(g) }) : it);
-  } else if ($("f-savelib").checked) {
-    library.unshift({
-      id: uid(), name: $("f-name").value.trim() || "Unnamed food",
-      per100, servingG: num(draft.servingG) || null, barcode: draft.barcode || null, lastGrams: r1(g)
+  if (draft.editId) {
+    entries = entries.map(e => e.id === draft.editId
+      ? Object.assign({}, e, { name, grams: r1(g), per100, barcode: draft.barcode || e.barcode || null })
+      : e);
+  } else {
+    entries.push({
+      id: uid(), name, grams: r1(g), per100,
+      barcode: draft.barcode || null,
+      servingG: num(draft.servingG) || null, unitName: draft.unitName || null,
+      time: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
     });
-    library = library.slice(0, 60);
   }
-  sSet("library", library);
+  persistDay();
 
-  closeReview(); renderFacts(); renderLog(); renderLibrary();
+  if (draft.source !== "produce") { // produce is already permanently searchable in Foods
+    upsertLibrary({
+      name, per100,
+      servingG: num(draft.servingG) || null, unitName: draft.unitName || null,
+      barcode: draft.barcode || null, lastGrams: r1(g)
+    }, draft.fromLibraryId);
+  }
+
+  closeReview(); renderFacts(); renderLog(); renderRecents();
 };
 
 $("btn-manual").onclick = () => openReview({ source: "manual", grams: "" });
 
 // ---------- produce database ----------
-// [name, kcal, protein, carbs, fat, typicalG, unitName] — per 100 g, USDA FoodData Central, raw edible portion unless noted
+// [name, kcal, protein, carbs, fat, fiber, typicalG, unitName] — per 100 g, USDA FDC, raw edible portion unless noted
 const PRODUCE = [
-  // fruit
-  ["Banana", 89, 1.1, 22.8, 0.3, 118, "1 medium"],
-  ["Apple (with skin)", 52, 0.3, 13.8, 0.2, 182, "1 medium"],
-  ["Orange", 47, 0.9, 11.8, 0.1, 131, "1 medium"],
-  ["Strawberries", 32, 0.7, 7.7, 0.3, 152, "1 cup"],
-  ["Blueberries", 57, 0.7, 14.5, 0.3, 148, "1 cup"],
-  ["Raspberries", 52, 1.2, 11.9, 0.7, 123, "1 cup"],
-  ["Blackberries", 43, 1.4, 9.6, 0.5, 144, "1 cup"],
-  ["Grapes", 69, 0.7, 18.1, 0.2, 151, "1 cup"],
-  ["Watermelon", 30, 0.6, 7.6, 0.2, 152, "1 cup"],
-  ["Cantaloupe", 34, 0.8, 8.2, 0.2, 160, "1 cup"],
-  ["Pineapple", 50, 0.5, 13.1, 0.1, 165, "1 cup"],
-  ["Mango", 60, 0.8, 15.0, 0.4, 165, "1 cup"],
-  ["Peach", 39, 0.9, 9.5, 0.3, 150, "1 medium"],
-  ["Pear", 57, 0.4, 15.2, 0.1, 178, "1 medium"],
-  ["Kiwi", 61, 1.1, 14.7, 0.5, 69, "1 fruit"],
-  ["Cherries (sweet)", 63, 1.1, 16.0, 0.2, 154, "1 cup"],
-  ["Plum", 46, 0.7, 11.4, 0.3, 66, "1 fruit"],
-  ["Grapefruit", 42, 0.8, 10.7, 0.1, 123, "1/2 fruit"],
-  ["Pomegranate arils", 83, 1.7, 18.7, 1.2, 174, "1 cup"],
-  ["Avocado", 160, 2.0, 8.5, 14.7, 150, "1 medium"],
-  ["Dates (Medjool)", 277, 1.8, 75.0, 0.2, 24, "1 date"],
-  ["Lemon", 29, 1.1, 9.3, 0.3, 58, "1 fruit"],
-  ["Lime", 30, 0.7, 10.5, 0.2, 67, "1 fruit"],
-  // veg
-  ["Broccoli", 34, 2.8, 6.6, 0.4, 91, "1 cup"],
-  ["Spinach", 23, 2.9, 3.6, 0.4, 30, "1 cup raw"],
-  ["Kale", 35, 2.9, 4.4, 1.5, null, null],
-  ["Carrot", 41, 0.9, 9.6, 0.2, 61, "1 medium"],
-  ["Sweet potato (baked)", 90, 2.0, 20.7, 0.2, 114, "1 medium"],
-  ["Potato (baked, w/ skin)", 93, 2.5, 21.2, 0.1, 173, "1 medium"],
-  ["Cucumber (with peel)", 15, 0.7, 3.6, 0.1, null, null],
-  ["Tomato", 18, 0.9, 3.9, 0.2, 123, "1 medium"],
-  ["Bell pepper (red)", 31, 1.0, 6.0, 0.3, 119, "1 medium"],
-  ["Onion", 40, 1.1, 9.3, 0.1, 110, "1 medium"],
-  ["Garlic", 149, 6.4, 33.1, 0.5, 3, "1 clove"],
-  ["Zucchini", 17, 1.2, 3.1, 0.3, 196, "1 medium"],
-  ["Cauliflower", 25, 1.9, 5.0, 0.3, 107, "1 cup"],
-  ["Brussels sprouts", 43, 3.4, 9.0, 0.3, 88, "1 cup"],
-  ["Asparagus", 20, 2.2, 3.9, 0.1, 134, "1 cup"],
-  ["Green beans", 31, 1.8, 7.0, 0.2, 100, "1 cup"],
-  ["Mushrooms (white)", 22, 3.1, 3.3, 0.3, 70, "1 cup sliced"],
-  ["Lettuce (romaine)", 17, 1.2, 3.3, 0.3, null, null],
-  ["Celery", 14, 0.7, 3.0, 0.2, 40, "1 stalk"],
-  ["Corn (sweet, raw)", 86, 3.3, 18.7, 1.4, 90, "1 ear kernels"],
-  ["Peas (green)", 81, 5.4, 14.5, 0.4, 145, "1 cup"],
-  ["Edamame (cooked, shelled)", 121, 11.9, 8.9, 5.2, 155, "1 cup"],
-  ["Beet", 43, 1.6, 9.6, 0.2, 82, "1 beet"],
-  ["Butternut squash", 45, 1.0, 11.7, 0.1, 140, "1 cup cubed"]
+  ["Banana", 89, 1.1, 22.8, 0.3, 2.6, 118, "1 medium"],
+  ["Apple (with skin)", 52, 0.3, 13.8, 0.2, 2.4, 182, "1 medium"],
+  ["Orange", 47, 0.9, 11.8, 0.1, 2.4, 131, "1 medium"],
+  ["Strawberries", 32, 0.7, 7.7, 0.3, 2.0, 152, "1 cup"],
+  ["Blueberries", 57, 0.7, 14.5, 0.3, 2.4, 148, "1 cup"],
+  ["Raspberries", 52, 1.2, 11.9, 0.7, 6.5, 123, "1 cup"],
+  ["Blackberries", 43, 1.4, 9.6, 0.5, 5.3, 144, "1 cup"],
+  ["Grapes", 69, 0.7, 18.1, 0.2, 0.9, 151, "1 cup"],
+  ["Watermelon", 30, 0.6, 7.6, 0.2, 0.4, 152, "1 cup"],
+  ["Cantaloupe", 34, 0.8, 8.2, 0.2, 0.9, 160, "1 cup"],
+  ["Pineapple", 50, 0.5, 13.1, 0.1, 1.4, 165, "1 cup"],
+  ["Mango", 60, 0.8, 15.0, 0.4, 1.6, 165, "1 cup"],
+  ["Peach", 39, 0.9, 9.5, 0.3, 1.5, 150, "1 medium"],
+  ["Pear", 57, 0.4, 15.2, 0.1, 3.1, 178, "1 medium"],
+  ["Kiwi", 61, 1.1, 14.7, 0.5, 3.0, 69, "1 fruit"],
+  ["Cherries (sweet)", 63, 1.1, 16.0, 0.2, 2.1, 154, "1 cup"],
+  ["Plum", 46, 0.7, 11.4, 0.3, 1.4, 66, "1 fruit"],
+  ["Grapefruit", 42, 0.8, 10.7, 0.1, 1.6, 123, "1/2 fruit"],
+  ["Pomegranate arils", 83, 1.7, 18.7, 1.2, 4.0, 174, "1 cup"],
+  ["Avocado", 160, 2.0, 8.5, 14.7, 6.7, 150, "1 medium"],
+  ["Dates (Medjool)", 277, 1.8, 75.0, 0.2, 6.7, 24, "1 date"],
+  ["Lemon", 29, 1.1, 9.3, 0.3, 2.8, 58, "1 fruit"],
+  ["Lime", 30, 0.7, 10.5, 0.2, 2.8, 67, "1 fruit"],
+  ["Broccoli", 34, 2.8, 6.6, 0.4, 2.6, 91, "1 cup"],
+  ["Spinach", 23, 2.9, 3.6, 0.4, 2.2, 30, "1 cup raw"],
+  ["Kale", 35, 2.9, 4.4, 1.5, 4.1, null, null],
+  ["Carrot", 41, 0.9, 9.6, 0.2, 2.8, 61, "1 medium"],
+  ["Sweet potato (baked)", 90, 2.0, 20.7, 0.2, 3.3, 114, "1 medium"],
+  ["Potato (baked, w/ skin)", 93, 2.5, 21.2, 0.1, 2.2, 173, "1 medium"],
+  ["Cucumber (with peel)", 15, 0.7, 3.6, 0.1, 0.5, null, null],
+  ["Tomato", 18, 0.9, 3.9, 0.2, 1.2, 123, "1 medium"],
+  ["Bell pepper (red)", 31, 1.0, 6.0, 0.3, 2.1, 119, "1 medium"],
+  ["Onion", 40, 1.1, 9.3, 0.1, 1.7, 110, "1 medium"],
+  ["Garlic", 149, 6.4, 33.1, 0.5, 2.1, 3, "1 clove"],
+  ["Zucchini", 17, 1.2, 3.1, 0.3, 1.0, 196, "1 medium"],
+  ["Cauliflower", 25, 1.9, 5.0, 0.3, 2.0, 107, "1 cup"],
+  ["Brussels sprouts", 43, 3.4, 9.0, 0.3, 3.8, 88, "1 cup"],
+  ["Asparagus", 20, 2.2, 3.9, 0.1, 2.1, 134, "1 cup"],
+  ["Green beans", 31, 1.8, 7.0, 0.2, 2.7, 100, "1 cup"],
+  ["Mushrooms (white)", 22, 3.1, 3.3, 0.3, 1.0, 70, "1 cup sliced"],
+  ["Lettuce (romaine)", 17, 1.2, 3.3, 0.3, 2.1, null, null],
+  ["Celery", 14, 0.7, 3.0, 0.2, 1.6, 40, "1 stalk"],
+  ["Corn (sweet, raw)", 86, 3.3, 18.7, 1.4, 2.0, 90, "1 ear kernels"],
+  ["Peas (green)", 81, 5.4, 14.5, 0.4, 5.1, 145, "1 cup"],
+  ["Edamame (cooked, shelled)", 121, 11.9, 8.9, 5.2, 5.2, 155, "1 cup"],
+  ["Beet", 43, 1.6, 9.6, 0.2, 2.8, 82, "1 beet"],
+  ["Butternut squash", 45, 1.0, 11.7, 0.1, 2.0, 140, "1 cup cubed"]
 ];
 
-function renderProduceList(filter) {
-  const q = (filter || "").trim().toLowerCase();
-  const items = PRODUCE.filter(p => !q || p[0].toLowerCase().includes(q));
-  $("produce-list").innerHTML = items.length ? items.map(p => `
-    <button class="produce-item" data-pi="${PRODUCE.indexOf(p)}">
-      <span class="lib-name">${esc(p[0])}</span>
-      <span class="produce-macros">${p[1]} kcal · ${p[2]}P / ${p[3]}C / ${p[4]}F</span>
-    </button>`).join("") : `<div class="empty">No match — use Enter manually and it'll save to My foods.</div>`;
-  $("produce-list").querySelectorAll("[data-pi]").forEach(b => b.onclick = () => {
-    const p = PRODUCE[+b.dataset.pi];
-    closeProducePicker(true);
-    openReview({
-      source: "produce", name: p[0],
-      kcal: p[1], protein: p[2], carbs: p[3], fat: p[4],
-      servingG: p[5], unitName: p[6], grams: "",
-      notes: "USDA average per 100 g, edible portion. Weigh it peeled/trimmed for best accuracy."
-    });
+// staples — USDA FDC per 100 g, cooked where noted; fiber included where meaningful
+const STAPLES = [
+  ["Chicken breast (roasted, skinless)", 165, 31.0, 0, 3.6, 0, null, null],
+  ["Chicken thigh (roasted, skinless)", 209, 26.0, 0, 10.9, 0, null, null],
+  ["Ground turkey 93/7 (cooked)", 207, 27.1, 0, 10.4, 0, null, null],
+  ["Ground beef 90/10 (cooked)", 217, 26.1, 0, 11.7, 0, null, null],
+  ["Ground beef 80/20 (cooked)", 254, 25.8, 0, 16.2, 0, null, null],
+  ["Salmon, Atlantic (cooked)", 206, 22.1, 0, 12.4, 0, null, null],
+  ["Tuna, canned in water (drained)", 116, 25.5, 0, 0.8, 0, null, null],
+  ["Shrimp (cooked)", 99, 24.0, 0.2, 0.3, 0, null, null],
+  ["Tilapia (cooked)", 128, 26.2, 0, 2.7, 0, null, null],
+  ["Cod (cooked)", 105, 22.8, 0, 0.9, 0, null, null],
+  ["Egg, whole (raw)", 143, 12.6, 0.7, 9.5, 0, 50, "1 large"],
+  ["Egg white", 52, 10.9, 0.7, 0.2, 0, 33, "1 large white"],
+  ["Greek yogurt, nonfat plain", 59, 10.2, 3.6, 0.4, 0, 170, "1 single-serve"],
+  ["Cottage cheese 2%", 84, 11.0, 4.3, 2.3, 0, 113, "1/2 cup"],
+  ["Milk 2%", 50, 3.3, 4.8, 2.0, 0, 244, "1 cup"],
+  ["Milk, whole", 61, 3.2, 4.8, 3.3, 0, 244, "1 cup"],
+  ["Milk, skim", 34, 3.4, 5.0, 0.1, 0, 245, "1 cup"],
+  ["Cheddar cheese", 403, 24.9, 1.3, 33.1, 0, 28, "1 oz"],
+  ["Mozzarella, part-skim", 254, 24.3, 3.0, 15.9, 0, 28, "1 oz"],
+  ["Tofu, firm", 78, 9.4, 1.9, 4.2, 0.9, null, null],
+  ["White rice (cooked)", 130, 2.7, 28.2, 0.3, 0.4, 158, "1 cup"],
+  ["Brown rice (cooked)", 123, 2.7, 25.6, 1.0, 1.6, 195, "1 cup"],
+  ["Pasta (cooked)", 158, 5.8, 30.9, 0.9, 1.8, 140, "1 cup"],
+  ["Quinoa (cooked)", 120, 4.4, 21.3, 1.9, 2.8, 185, "1 cup"],
+  ["Oats, rolled (dry)", 379, 13.2, 67.7, 6.5, 10.1, 40, "1/2 cup"],
+  ["Bread, whole wheat", 252, 12.3, 43.1, 3.5, 6.0, 32, "1 slice"],
+  ["Bread, white", 266, 8.9, 49.2, 3.3, 2.7, 29, "1 slice"],
+  ["Bagel, plain", 257, 10.0, 50.5, 1.7, 2.2, 105, "1 bagel"],
+  ["Tortilla, flour", 297, 7.9, 49.4, 7.4, 3.5, 49, "1 tortilla"],
+  ["Tortilla, corn", 218, 5.7, 44.6, 2.9, 6.3, 26, "1 tortilla"],
+  ["Black beans (cooked)", 132, 8.9, 23.7, 0.5, 8.7, 172, "1 cup"],
+  ["Chickpeas (cooked)", 164, 8.9, 27.4, 2.6, 7.6, 164, "1 cup"],
+  ["Lentils (cooked)", 116, 9.0, 20.1, 0.4, 7.9, 198, "1 cup"],
+  ["Pinto beans (cooked)", 143, 9.0, 26.2, 0.7, 9.0, 171, "1 cup"],
+  ["Hummus", 166, 7.9, 14.3, 9.6, 6.0, 15, "1 tbsp"],
+  ["Olive oil", 884, 0, 0, 100, 0, 14, "1 tbsp"],
+  ["Avocado oil", 884, 0, 0, 100, 0, 14, "1 tbsp"],
+  ["Butter", 717, 0.9, 0.1, 81.1, 0, 14, "1 tbsp"],
+  ["Peanut butter", 588, 25.1, 19.6, 50.0, 6.0, 32, "2 tbsp"],
+  ["Almond butter", 614, 21.0, 18.8, 55.5, 10.3, 32, "2 tbsp"],
+  ["Almonds", 579, 21.2, 21.6, 49.9, 12.5, 28, "1 oz"],
+  ["Walnuts", 654, 15.2, 13.7, 65.2, 6.7, 28, "1 oz"],
+  ["Cashews", 553, 18.2, 30.2, 43.9, 3.3, 28, "1 oz"],
+  ["Peanuts (dry roasted)", 585, 23.7, 21.5, 49.7, 8.0, 28, "1 oz"],
+  ["Chia seeds", 486, 16.5, 42.1, 30.7, 34.4, 28, "2 tbsp"],
+  ["Flaxseed, ground", 534, 18.3, 28.9, 42.2, 27.3, 7, "1 tbsp"],
+  ["Honey", 304, 0.3, 82.4, 0, 0.2, 21, "1 tbsp"],
+  ["Maple syrup", 260, 0, 67.0, 0.1, 0, 20, "1 tbsp"],
+  ["Dark chocolate 70-85%", 598, 7.8, 45.9, 42.6, 10.9, 28, "1 oz"]
+];
+const SEEDS = PRODUCE.concat(STAPLES);
+
+function openProduceItem(p) {
+  showView("today");
+  openReview({
+    source: "produce", name: p[0],
+    kcal: p[1], protein: p[2], carbs: p[3], fat: p[4], fiber: p[5],
+    servingG: p[6], unitName: p[7], grams: "", basisG: 100,
+    notes: "USDA reference per 100 g, edible portion — weigh cooked/raw as named."
   });
 }
 
-function openProducePicker() {
-  $("idle-actions").classList.add("hidden");
-  $("review").classList.add("hidden");
-  $("produce-picker").classList.remove("hidden");
-  $("produce-search").value = "";
-  renderProduceList("");
+// ---------- Foods tab (searchable library + seed DB + live USDA search) ----------
+function renderFoods() {
+  const q = ($("foods-search").value || "").trim().toLowerCase();
+  const libMatches = library.filter(it => !q || it.name.toLowerCase().includes(q));
+  const prodMatches = SEEDS.filter(p => !q || p[0].toLowerCase().includes(q));
+  let html = "";
+  if (libMatches.length) {
+    html += libMatches.map(it => libRowHTML(it, "use")).join("");
+  }
+  if (prodMatches.length) {
+    html += prodMatches.map(p => `
+      <div class="lib-item">
+        <button class="lib-add" data-prod="${SEEDS.indexOf(p)}">
+          <span class="lib-name">${esc(p[0])}<span class="badge">USDA</span></span>
+          <span class="lib-meta">${p[1]} kcal · ${p[2]}g protein / 100g</span>
+        </button>
+      </div>`).join("");
+  }
+  if (!html) html = `<div class="empty">Nothing local — try the USDA search below, or Enter manually on Today.</div>`;
+  $("foods-list").innerHTML = html;
+  wireLibButtons($("foods-list"));
+  $("foods-list").querySelectorAll("[data-prod]").forEach(b => b.onclick = () => openProduceItem(SEEDS[+b.dataset.prod]));
+  renderFdcZone();
 }
-function closeProducePicker(keepActionsHidden) {
-  $("produce-picker").classList.add("hidden");
-  if (!keepActionsHidden) $("idle-actions").classList.remove("hidden");
+$("foods-search").addEventListener("input", renderFoods);
+$("btn-foods").onclick = () => { showView("foods"); renderFoods(); $("foods-search").focus(); };
+
+// ---------- USDA FoodData Central live search ----------
+let fdcState = { q: "", results: null, loading: false, error: null };
+
+function renderFdcZone() {
+  const zone = $("fdc-zone");
+  const q = ($("foods-search").value || "").trim();
+  if (q.length < 3) { zone.innerHTML = ""; return; }
+  let html;
+  if (fdcState.q === q && fdcState.loading) {
+    html = `<div class="empty">Searching USDA…</div>`;
+  } else if (fdcState.q === q && fdcState.error) {
+    html = `<div class="err">${esc(fdcState.error)}</div>`;
+  } else if (fdcState.q === q && fdcState.results) {
+    html = fdcState.results.length
+      ? `<div class="section-label" style="margin-top:4px">USDA FoodData Central</div>` + fdcState.results.map((f, i) => `
+        <div class="lib-item">
+          <button class="lib-add" data-fdc="${i}">
+            <span class="lib-name">${esc(f.name)}<span class="badge">${esc(f.badge)}</span></span>
+            <span class="lib-meta">${Math.round(f.kcal || 0)} kcal · ${r1(f.protein || 0)}g protein / 100g</span>
+          </button>
+        </div>`).join("")
+      : `<div class="empty">USDA: no results for “${esc(q)}”.</div>`;
+  } else {
+    html = `<button class="ghost" style="width:100%" id="btn-fdc">Search USDA database for “${esc(q)}”</button>`;
+  }
+  zone.innerHTML = html;
+  const btn = document.getElementById("btn-fdc");
+  if (btn) btn.onclick = () => searchFDC(q);
+  zone.querySelectorAll("[data-fdc]").forEach(b => b.onclick = () => {
+    const f = fdcState.results[+b.dataset.fdc];
+    showView("today");
+    openReview(Object.assign({}, f, {
+      source: "fdc", grams: f.servingG ?? "", basisG: 100,
+      servingG: f.servingG || null, unitName: f.servingG ? "1 serving" : null,
+      notes: "USDA FoodData Central, per 100 g. Added foods are saved to your Foods for next time."
+    }));
+  });
 }
-$("btn-produce").onclick = openProducePicker;
-$("btn-produce-close").onclick = () => closeProducePicker(false);
-$("produce-search").addEventListener("input", e => renderProduceList(e.target.value));
+
+async function searchFDC(q) {
+  fdcState = { q, results: null, loading: true, error: null };
+  renderFdcZone();
+  try {
+    const key = (targets.fdcKey || "DEMO_KEY");
+    const res = await fetch(
+      `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${encodeURIComponent(key)}` +
+      `&query=${encodeURIComponent(q)}&pageSize=12&dataType=Foundation,SR%20Legacy,Branded`
+    );
+    if (res.status === 429) throw new Error("USDA rate limit hit — add your own free API key under Targets.");
+    if (!res.ok) throw new Error("USDA search failed (" + res.status + ").");
+    const j = await res.json();
+    // nutrientNumber → our keys; values in search results are per 100 g, minerals already in mg
+    const NMAP = { "208": "kcal", "957": "kcal", "958": "kcal", "203": "protein", "205": "carbs", "204": "fat",
+      "291": "fiber", "269": "sugar", "606": "satfat", "307": "sodium", "306": "potassium", "301": "calcium", "303": "iron" };
+    fdcState.results = (j.foods || []).map(f => {
+      const out = {
+        name: [f.brandName, f.description].filter(Boolean).join(" ").trim(),
+        badge: f.dataType === "Branded" ? "FDC brand" : "USDA"
+      };
+      (f.foodNutrients || []).forEach(n => {
+        const k = NMAP[String(n.nutrientNumber)];
+        if (k && n.value != null && out[k] == null) out[k] = r1(n.value);
+      });
+      out.servingG = (f.servingSizeUnit || "").toLowerCase() === "g" && f.servingSize ? r1(f.servingSize) : null;
+      return out;
+    }).filter(f => f.kcal != null);
+    fdcState.loading = false;
+  } catch (e) {
+    fdcState.loading = false;
+    fdcState.error = e.message || "USDA search failed.";
+  }
+  renderFdcZone();
+}
 
 // ---------- Open Food Facts lookup ----------
-const OFF_FIELDS = "product_name,brands,nutriments,serving_quantity,serving_size";
-
 async function lookupBarcode(code) {
-  const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=${OFF_FIELDS}`);
+  const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,nutriments,serving_quantity,serving_size`);
   if (!res.ok && res.status !== 404) throw new Error("network");
   const j = await res.json().catch(() => ({}));
   const p = j.product;
@@ -592,17 +848,24 @@ async function lookupBarcode(code) {
     const m = p.serving_size.match(/([\d.]+)\s*g/i);
     if (m) servingG = parseFloat(m[1]);
   }
+  const g2mg = v => v != null ? r1(v * 1000) : null;
   return {
     name,
     kcal: kcal != null ? r1(kcal) : null,
     protein: n.proteins_100g != null ? r1(n.proteins_100g) : null,
     carbs: n.carbohydrates_100g != null ? r1(n.carbohydrates_100g) : null,
     fat: n.fat_100g != null ? r1(n.fat_100g) : null,
+    fiber: n.fiber_100g != null ? r1(n.fiber_100g) : null,
+    sugar: n.sugars_100g != null ? r1(n.sugars_100g) : null,
+    satfat: n["saturated-fat_100g"] != null ? r1(n["saturated-fat_100g"]) : null,
+    sodium: g2mg(n.sodium_100g),
+    potassium: g2mg(n.potassium_100g),
+    calcium: g2mg(n.calcium_100g),
+    iron: g2mg(n.iron_100g),
     servingG: servingG || null
   };
 }
 
-// Check library first: rescanning a known food skips the network entirely
 function libraryByBarcode(code) { return library.find(it => it.barcode === code); }
 
 async function handleCode(code) {
@@ -610,28 +873,21 @@ async function handleCode(code) {
   if (code.length < 6) { setScanStatus("That doesn't look like a product barcode.", true); return; }
 
   const known = libraryByBarcode(code);
-  if (known) {
-    closeScanner();
-    openReview({
-      source: "library", name: known.name,
-      kcal: known.per100.kcal, protein: known.per100.protein, carbs: known.per100.carbs, fat: known.per100.fat,
-      servingG: known.servingG, grams: known.lastGrams ?? known.servingG ?? "", fromLibraryId: known.id
-    });
-    return;
-  }
+  if (known) { closeScanner(); showView("today"); openLibItem(known); return; }
 
   setScanStatus(`<span class="spinner"></span>Looking up ${code}…`);
   try {
     const food = await lookupBarcode(code);
     closeScanner();
+    showView("today");
     if (food && food.kcal != null) {
-      openReview(Object.assign({ source: "off", barcode: code, grams: food.servingG ?? "" }, food,
+      openReview(Object.assign({ source: "off", barcode: code, grams: food.servingG ?? "", basisG: 100 }, food,
         food.protein == null || food.carbs == null || food.fat == null
-          ? { notes: "Some macros were missing in the database — fill in the blanks from the label." } : {}));
+          ? { notes: "Some values were missing in the database — fill in the blanks from the label. Your edits are saved and reused on every rescan." } : {}));
     } else {
       openReview({
         source: "manual", barcode: code, grams: "",
-        notes: `Barcode ${code} isn't in Open Food Facts (common for store brands). Enter it from the label once — it'll be saved for next time.`
+        notes: `Barcode ${code} isn't in Open Food Facts (common for store brands). Enter it from the label once — it's saved and reused automatically.`
       });
     }
   } catch (e) {
@@ -689,7 +945,6 @@ async function openScanner() {
         return;
       }
     }
-    // fallback: ZXing (covers iOS Safari)
     setScanStatus("Loading scanner…");
     await loadZXing();
     zxingReader = new ZXing.BrowserMultiFormatReader();
@@ -750,8 +1005,8 @@ function renderHistory() {
   keys.sort().reverse();
   const rows = [];
   for (const k of keys.slice(0, 30)) {
-    const day = sGet("day_" + k);
-    if (!day || !day.length) continue;
+    const day = loadDay(k);
+    if (!day.length) continue;
     rows.push(Object.assign({ key: k, items: day.length }, totalsOf(day)));
     if (rows.length >= 14) break;
   }
@@ -761,7 +1016,7 @@ function renderHistory() {
       <button class="hist-row" data-day="${h.key}">
         <div>
           <div class="entry-name">${shortDate(h.key)}</div>
-          <div class="entry-macros">${h.items} items · ${r1(h.protein)}g protein</div>
+          <div class="entry-macros">${h.items} items · ${r1(h.protein)}g protein · ${r1(h.fiber || 0)}g fiber</div>
         </div>
         <div class="hist-kcal">
           <span>${Math.round(h.kcal)}</span>
@@ -771,7 +1026,7 @@ function renderHistory() {
   }).join("") : `<div class="empty">No history yet.</div>`;
   $("hist-list").querySelectorAll("[data-day]").forEach(b => b.onclick = () => {
     dateKey = b.dataset.day;
-    entries = sGet("day_" + dateKey) || [];
+    entries = loadDay(dateKey);
     showView("today");
     renderFacts(); renderLog();
   });
@@ -783,6 +1038,7 @@ function renderSettings() {
   $("t-protein").value = targets.protein;
   $("t-carbs").value = targets.carbs;
   $("t-fat").value = targets.fat;
+  $("t-fdckey").value = targets.fdcKey || "";
   updateTargetsNote();
 }
 function updateTargetsNote() {
@@ -796,7 +1052,8 @@ $("btn-save-targets").onclick = () => {
     kcal: num($("t-kcal").value) || DEFAULT_TARGETS.kcal,
     protein: num($("t-protein").value) || DEFAULT_TARGETS.protein,
     carbs: num($("t-carbs").value) || DEFAULT_TARGETS.carbs,
-    fat: num($("t-fat").value) || DEFAULT_TARGETS.fat
+    fat: num($("t-fat").value) || DEFAULT_TARGETS.fat,
+    fdcKey: $("t-fdckey").value.trim() || null
   };
   sSet("settings", targets);
   showView("today"); renderFacts();
@@ -804,28 +1061,22 @@ $("btn-save-targets").onclick = () => {
 
 // ---------- navigation ----------
 function showView(v) {
-  ["today", "history", "settings"].forEach(x => {
+  ["today", "foods", "history", "settings"].forEach(x => {
     $("view-" + x).classList.toggle("hidden", x !== v);
     $("nav-" + x).classList.toggle("on", x === v);
   });
 }
 $("nav-today").onclick = () => {
   dateKey = localDateKey();
-  entries = sGet("day_" + dateKey) || [];
-  showView("today"); renderFacts(); renderLog();
+  entries = loadDay(dateKey);
+  showView("today"); renderFacts(); renderLog(); renderRecents();
 };
+$("nav-foods").onclick = () => { showView("foods"); renderFoods(); };
 $("nav-history").onclick = () => { showView("history"); renderHistory(); };
 $("nav-settings").onclick = () => { showView("settings"); renderSettings(); };
 
-// roll over to the new day if the app was left open overnight
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && dateKey !== localDateKey() && !draft) {
-    // only auto-roll if we were viewing what used to be "today"
-  }
-});
-
 // ---------- init ----------
-renderFacts(); renderLog(); renderLibrary();
+renderFacts(); renderLog(); renderRecents();
 </script>
 </body>
 </html>
